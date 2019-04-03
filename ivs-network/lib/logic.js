@@ -47,16 +47,23 @@
 //     emit(event);
 // }
 
-async function sampleTransaction(e)
+async function sampleTransaction()
 {
-    const oldVal = e.asset.value
-    e.asset.value = e.newValue
+    // const oldVal = e.asset.value
+    // e.asset.value = e.newValue
 
     return getAssetRegistry(
-        'ivsnetwork.SampleAsset'
+      'ivsnetwork.SampleAsset'
     ).then((assetRegistry) => {
-        return assetRegistry.update(e.SampleAsset)
+      let factory = getFactory();
+      let asset = factory.newResource(
+        'ivsnetwork',
+        'testid',
+        'test'
+      )
+      return assetRegistry.add(asset)
     }).catch((err) => {
-        throw new Error(err)
+      console.err(err);
     });
 }
+

@@ -23,22 +23,22 @@ rule EverybodyCanReadEverything {
     action: ALLOW
 }
 
-rule EverybodyCanSubmitTransactions {
-    description: "Allow all participants to submit transactions"
-    participant: "ivsnetwork.User"
-    operation: CREATE
-    resource: "ivsnetwork.Test"
-    action: ALLOW
-}
+// rule EverybodyCanSubmitTransactions {
+//     description: "Allow all participants to submit transactions"
+//     participant: "ivsnetwork.User"
+//     operation: CREATE
+//     resource: "ivsnetwork.Test"
+//     action: ALLOW
+// }
 
-rule OwnerHasFullAccessToTheirAssets {
-    description: "Allow all participants full access to their assets"
-    participant(p): "ivsnetwork.User"
-    operation: ALL
-    resource(r): "ivsnetwork.SampleAsset"
-    condition: (r.owner.getIdentifier() === p.getIdentifier())
-    action: ALLOW
-}
+// rule OwnerHasFullAccessToTheirAssets {
+//     description: "Allow all participants full access to their assets"
+//     participant(p): "ivsnetwork.User"
+//     operation: ALL
+//     resource(r): "ivsnetwork.SampleAsset"
+//     condition: (r.owner.getIdentifier() === p.getIdentifier())
+//     action: ALLOW
+// }
 
 rule SystemACL {
   description:  "System ACL to permit all access"

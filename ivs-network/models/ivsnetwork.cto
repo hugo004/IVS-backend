@@ -18,18 +18,23 @@
 
 namespace ivsnetwork
 
-
-participant User identified by uid 
-{
+participant BaseUser identified by uid {
   o String uid
+}
+
+participant User extends BaseUser
+{
   o String firstName
   o String lastName
+  o String phone
+  o String email
+  o String location
 
 }
 
-participant ChannelMember identified by mid 
+participant ChannelMember extends BaseUser
 {
-  o String mid
+  
 }
 
 participant Organization identified by oid 
@@ -44,14 +49,49 @@ participant Client identified by cid
 
 }
 
-asset SampleAsset identified by assetId {
+// Asset declare 
+asset SampleAsset identified by assetId 
+{
   o String assetId
-  --> User owner
   o String value
 }
 
-// transaction SampleTransaction {
-//   --> SampleAsset asset
+asset Record identified by recordId 
+{
+  o String recordId
+  o User user
+  o DateTime createTime
+  o Education[] educations
+  o WorkExp [] workExps
+  o String workSkills
+}
+
+abstract asset Institution identified by name
+{
+  o String name
+  o DateTime from
+  o DateTime to
+}
+
+asset Education extends Institution
+{
+  o String major
+
+}
+
+asset WorkExp extends Institution
+{
+  o String jobTitle
+  o String jobDuty
+
+}
+
+transaction SampleTransaction {
+  // --> SampleAsset asset
+  // o String newValue
+}
+
+// transaction AddAsset {
 //   o String newValue
 // }
 
@@ -61,69 +101,83 @@ asset SampleAsset identified by assetId {
 //   o String newValue
 // }
 
-transaction Test {
-  --> SampleAsset asset
-  o String newValue
+// transactions declare
+
+// transaction Test 
+// {
+//   --> SampleAsset asset
+//   o String newValue
+// }
+
+//records
+transaction VerifyRecord 
+{
+}
+
+transaction UploadRecord
+{
+  --> Record record
 }
 
 
-//event declare
+transaction UpdateRecord 
+{
+  --> Record newRecord
+}
 
-//records
-event VerifyRecord 
-{}
+// event InputRecord 
+// {}
 
-event UpdateRecord 
-{}
-
-event InputRecord 
-{}
-
-event RecordValidation
-{}
-
-//channel
-event CreateChannelGroup
-{}
-
-event JointChannelGroup
-{}
-
-event AddChannelMember
-{}
-
-event RemoveChannelMember
-{}
-
-event AccessChannelRecord
-{}
-
-event UpdateChannelLeager
-{}
-
-//permissions
-event SetRecordPermission
-{}
-
-event RevokeAccessPermission
-{}
-
-event RequestAccessPermission
-{}
-
-event GrandAccessPermission
-{}
-
-event SetAccessPermission
-{}
-
-//Client
-event ViewChain
-{}
-
-event Registraction
-{}
+// event RecordValidation
+// {}
 
 
-event NotifyUser
-{}
+// //event declare
+
+
+
+// //channel
+// event CreateChannelGroup
+// {}
+
+// event JointChannelGroup
+// {}
+
+// event AddChannelMember
+// {}
+
+// event RemoveChannelMember
+// {}
+
+// event AccessChannelRecord
+// {}
+
+// event UpdateChannelLeager
+// {}
+
+// //permissions
+// event SetRecordPermission
+// {}
+
+// event RevokeAccessPermission
+// {}
+
+// event RequestAccessPermission
+// {}
+
+// event GrandAccessPermission
+// {}
+
+// event SetAccessPermission
+// {}
+
+// //Client
+// event ViewChain
+// {}
+
+// event Registraction
+// {}
+
+
+// event NotifyUser
+// {}
