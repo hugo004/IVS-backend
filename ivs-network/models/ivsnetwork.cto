@@ -1,29 +1,11 @@
-/*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
-/**
- * Write your model definitions here
- */
-
-namespace ivsnetwork
+namespace org.example.ivsnetwork
 
 participant BaseUser identified by uid {
   o String uid
 }
 
-participant User extends BaseUser
-{
+participant User extends BaseUser {
   o String firstName
   o String lastName
   o String phone
@@ -32,83 +14,69 @@ participant User extends BaseUser
 
 }
 
-participant ChannelMember extends BaseUser
-{
-  
+
+transaction CreateUser {
+    o String userId
+    o String firstName
+    o String lastName
+    o String phone
+    o String email
+    o String location
 }
 
-participant Organization identified by oid 
-{
-  o String oid
 
-}
 
-participant Client identified by cid 
-{
-  o String cid
-
-}
-
-// Asset declare 
-asset SampleAsset identified by assetId 
-{
-  o String assetId
-  o String value
-}
-
-asset Record identified by recordId 
-{
+asset Record identified by recordId {
   o String recordId
   o User user
-  o DateTime createTime
-  o Education[] educations
-  o WorkExp [] workExps
-  o String workSkills
+  o DateTime createTime optional
+  o Education[] educations optional
+  o WorkExp [] workExps optional
+  o String workSkills optional
 }
 
-abstract asset Institution identified by name
-{
+abstract asset Institution identified by name {
   o String name
-  o DateTime from
-  o DateTime to
+  o DateTime from optional
+  o DateTime to optional
 }
 
-asset Education extends Institution
-{
+asset Education extends Institution {
   o String major
 
 }
 
-asset WorkExp extends Institution
-{
+asset WorkExp extends Institution {
   o String jobTitle
   o String jobDuty
 
 }
 
-transaction SampleTransaction {
-  // --> SampleAsset asset
-  // o String newValue
+transaction CreateRecord {
+  o String recordId
+  o User user
+  o DateTime createTime optional
+  o Education[] educations optional
+  o WorkExp [] workExps optional
+  o String workSkills optional
 }
 
-// transaction AddAsset {
-//   o String newValue
-// }
+transaction CreateEducation {
+	o String name
+    o String major
+    o DateTime from
+    o DateTime to
+}
 
-// event SampleEvent {
-//   --> SampleAsset asset
-//   o String oldValue
-//   o String newValue
-// }
+transaction CreateWorkExp {
+	o String name
+    o String jobTitle
+    o String jobDuty
+    o DateTime from
+    o DateTime to
+}
 
-// transactions declare
-
-// transaction Test 
-// {
-//   --> SampleAsset asset
-//   o String newValue
-// }
-
+/*
 //records
 transaction VerifyRecord 
 {
@@ -181,3 +149,4 @@ transaction UpdateRecord
 
 // event NotifyUser
 // {}
+*/

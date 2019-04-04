@@ -1,69 +1,95 @@
-/*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-'use strict';
-/**
- * Write your transction processor functions here
- */
 
 /**
- * Sample transaction
- * @param {ivsnetwork.Test} sampleTransaction
+ * @param {org.example.ivsnetwork.CreateRecord} createRecord - the trade to be processed
+ * @transaction
+ */
+async function CreateRecord(createRecord) {
+  /*
+    record.workExp = [factory.newRelationship(namespace, 'WorkExp', 'ATG')];
+    o String recordId
+  o User user
+  o DateTime createTime
+  o Education[] educations
+  o WorkExp [] workExps
+  o String workSkills
+  */
+  var newRecordId = createRecord.recordId;
+  var factory = getFactory();
+
+  //create user
+  let user = CreateUser(createRecord.user);
+  
+  //create education
+  //let education = CreateEducation(createRecord.education);
+  
+  //create record
+  var newRecord = factory.newResource('org.example.ivsnetwork', 'Record', newRecordId);
+  newRecord.createTime = createRecord.createTime;
+  newRecord.user = user;
+  //newRecord.education = education;
+
+  let assetRegistry = await getAssetRegistry('org.example.ivsnetwork.Record');
+
+  await assetRegistry.add(newRecord);
+}
+
+
+/**
+ * Track the trade of a commodity from one trader to another
+ * @param {org.example.ivsnetwork.CreateUser} user - the trade to be processed
+ * @transaction
+ */
+async function CreateUser(user) {
+    
+  let factory = getFactory();
+
+  let newUser = factory.newResource('org.example.ivsnetwork', 'User', user.userId);
+  newUser.firstName = user.firstName;
+  newUser.lastName = user.lastName;
+  newUser.phone = user.phone;
+  newUser.email = user.email;
+  newUser.location = user.location;
+
+  let assetRegistry = await getParticipantRegistry('org.example.ivsnetwork.User');
+
+  await assetRegistry.add(newUser);
+  
+}
+
+/**
+ * @param {org.example.ivsnetwork.CreateEducation} education - the trade to be processed
+ * @transaction
+ */
+async function CreateEducation(education) {
+  let factory = getFactory();
+
+  let newEducation = factory.newResource('org.example.ivsnetwork', 'Education', education.name);
+  newEducation.name = education.name;
+  newEducation.major = education.major;
+
+  let assetRegistry = await getAssetRegistry('org.example.ivsnetwork.Education');
+
+  await assetRegistry.add(newEducation);
+}
+
+/**
+ * @param {org.example.ivsnetwork.CreateWorkExp} workExp - the trade to be processed
  * @transaction
  */
 
- const network = 'ivsnetwork'
- const assetName = `${network}.SampleAsset`
- const eventName = 'SampleEvent'
+async function CreateWorkExp(workExp) {
+	let factory = getFactory();
+  	
+  	let newExp = factory.newResource('org.example.ivsnetwork', 'WorkExp', workExp.name);
+  	newExp.name = workExp.name;
+  	newExp.jobTitle = workExp.jobTitle;
+  	newExp.jobDuty = workExp.jobDuty;
+  	newExp.from = workExp.from;
+  	newExp.to = workExp.to;
+  
+  	let assetRegistry = await getAssetRegistry('org.example.ivsnetwork.WorkExp');
+  
+   await assetRegistry.add(newExp);
 
-// async function sampleTransaction(tx) {
-//     // Save the old value of the asset.
-//     const oldValue = tx.asset.value;
-
-//     // Update the asset with the new value.
-//     tx.asset.value = tx.newValue;
-
-//     // Get the asset registry for the asset.
-//     const assetRegistry = await getAssetRegistry(assetName);
-//     // Update the asset in the asset registry.
-//     await assetRegistry.update(tx.asset);
-
-//     // Emit an event for the modified asset.
-//     let event = getFactory().newEvent(network, eventName);
-//     event.asset = tx.asset;
-//     event.oldValue = oldValue;
-//     event.newValue = tx.newValue;
-//     emit(event);
-// }
-
-async function sampleTransaction()
-{
-    // const oldVal = e.asset.value
-    // e.asset.value = e.newValue
-
-    return getAssetRegistry(
-      'ivsnetwork.SampleAsset'
-    ).then((assetRegistry) => {
-      let factory = getFactory();
-      let asset = factory.newResource(
-        'ivsnetwork',
-        'testid',
-        'test'
-      )
-      return assetRegistry.add(asset)
-    }).catch((err) => {
-      console.err(err);
-    });
 }
 
