@@ -1,80 +1,83 @@
 
 namespace org.example.ivsnetwork
 
-participant BaseUser identified by uid {
-  o String uid
-}
-
-participant User extends BaseUser {
+// system users
+concept BaseInfo {
   o String firstName
   o String lastName
   o String phone
   o String email
-  o String location
+  o String location optional
+}
+
+participant BaseUser identified by userId {
+  o String userId
+  o BaseInfo baseInfo
+}
+
+participant User extends BaseUser {
 
 }
 
 
 transaction CreateUser {
-    o String userId
-    o String firstName
-    o String lastName
-    o String phone
-    o String email
-    o String location
+  o BaseInfo baseInfo
 }
 
-
-
-asset Record identified by recordId {
-  o String recordId
-  o User user
-  o DateTime createTime optional
-  o Education[] educations optional
-  o WorkExp [] workExps optional
-  o String workSkills optional
+// CV records
+concept DateRange {
+  o DateTime from
+  o DateTime to
 }
 
-abstract asset Institution identified by name {
-  o String name
-  o DateTime from optional
-  o DateTime to optional
+abstract asset Institution identified by uid {
+  o String uid
+}
+
+concept EducationInfo extends DateRange {
+  o String school
+  o String major
 }
 
 asset Education extends Institution {
-  o String major
-
-}
-
-asset WorkExp extends Institution {
-  o String jobTitle
-  o String jobDuty
-
-}
-
-transaction CreateRecord {
-  o String recordId
-  o User user
-  o DateTime createTime optional
-  o Education[] educations optional
-  o WorkExp [] workExps optional
-  o String workSkills optional
+  o EducationInfo info
 }
 
 transaction CreateEducation {
-	o String name
-    o String major
-    o DateTime from
-    o DateTime to
+  o EducationInfo info
+}
+
+concept WorkExpInfo extends DateRange {
+  o String company
+  o String jobTitle
+  o String jobDuty
+}
+
+asset WorkExp extends Institution {
+  o WorkExpInfo info
 }
 
 transaction CreateWorkExp {
-	o String name
-    o String jobTitle
-    o String jobDuty
-    o DateTime from
-    o DateTime to
+  o WorkExpInfo info
 }
+
+asset Record identified by recordId {
+  o String recordId
+  o String workSkills optional
+  o DateTime createTime
+  --> User user
+  --> Education [] educations
+  --> WorkExp [] workExps optional
+}
+
+transaction CreateRecord {
+  o BaseInfo userInfo
+  o EducationInfo[] educationInfo
+  o WorkExpInfo[] workExpInfo optional
+  o DateTime createTime
+  o String workSkills optional
+}
+
 
 /*
 //records

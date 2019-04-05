@@ -17,9 +17,9 @@
  */
 rule EverybodyCanReadEverything {
     description: "Allow all participants read access to all resources"
-    participant: "ivsnetwork.User"
+    participant: "org.example.ivsnetwork.User"
     operation: READ
-    resource: "ivsnetwork.*"
+    resource: "org.example.ivsnetwork.*"
     action: ALLOW
 }
 

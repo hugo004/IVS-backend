@@ -1,36 +1,18 @@
+const NS = 'org.example.ivsnetwork';
 
 /**
- * @param {org.example.ivsnetwork.CreateRecord} createRecord - the trade to be processed
- * @transaction
+ * generate a unique id
+ * @param {*} prefix - unique id prefix
+ * @param {*} length - default length 10
  */
-async function CreateRecord(createRecord) {
-  /*
-    record.workExp = [factory.newRelationship(namespace, 'WorkExp', 'ATG')];
-    o String recordId
-  o User user
-  o DateTime createTime
-  o Education[] educations
-  o WorkExp [] workExps
-  o String workSkills
-  */
-  var newRecordId = createRecord.recordId;
-  var factory = getFactory();
+function UIDGenerator(prefix='u', length=10) {
+    var text = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-  //create user
-  let user = CreateUser(createRecord.user);
-  
-  //create education
-  //let education = CreateEducation(createRecord.education);
-  
-  //create record
-  var newRecord = factory.newResource('org.example.ivsnetwork', 'Record', newRecordId);
-  newRecord.createTime = createRecord.createTime;
-  newRecord.user = user;
-  //newRecord.education = education;
+    for (var i = 0; i < length; i++)
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
 
-  let assetRegistry = await getAssetRegistry('org.example.ivsnetwork.Record');
-
-  await assetRegistry.add(newRecord);
+    return `${prefix}-${text}`;
 }
 
 
@@ -40,20 +22,22 @@ async function CreateRecord(createRecord) {
  * @transaction
  */
 async function CreateUser(user) {
-    
+
   let factory = getFactory();
+  AddUser(factory, user.baseInfo);
+}
 
-  let newUser = factory.newResource('org.example.ivsnetwork', 'User', user.userId);
-  newUser.firstName = user.firstName;
-  newUser.lastName = user.lastName;
-  newUser.phone = user.phone;
-  newUser.email = user.email;
-  newUser.location = user.location;
+async function AddUser(factory, data) {
+  
+  let newUserId = UIDGenerator('u');
+  let newUser = factory.newResource(NS, 'User', newUserId);
+  newUser.baseInfo = data;
 
-  let assetRegistry = await getParticipantRegistry('org.example.ivsnetwork.User');
+  let assetRegistry = await getParticipantRegistry(`${NS}.User`);
 
   await assetRegistry.add(newUser);
-  
+
+  return newUser;
 }
 
 /**
@@ -61,35 +45,102 @@ async function CreateUser(user) {
  * @transaction
  */
 async function CreateEducation(education) {
+
   let factory = getFactory();
+  AddEducation(factory, education.info);
+}
 
-  let newEducation = factory.newResource('org.example.ivsnetwork', 'Education', education.name);
-  newEducation.name = education.name;
-  newEducation.major = education.major;
+async function AddEducation(factory, data) {
+  let newId = UIDGenerator('e');
 
-  let assetRegistry = await getAssetRegistry('org.example.ivsnetwork.Education');
-
+  let newEducation = factory.newResource(NS, 'Education', newId);
+  newEducation.info = data;
+  
+  let assetRegistry = await getAssetRegistry(`${NS}.Education`);
   await assetRegistry.add(newEducation);
+
+  return newEducation;
 }
 
 /**
  * @param {org.example.ivsnetwork.CreateWorkExp} workExp - the trade to be processed
  * @transaction
  */
-
 async function CreateWorkExp(workExp) {
-	let factory = getFactory();
-  	
-  	let newExp = factory.newResource('org.example.ivsnetwork', 'WorkExp', workExp.name);
-  	newExp.name = workExp.name;
-  	newExp.jobTitle = workExp.jobTitle;
-  	newExp.jobDuty = workExp.jobDuty;
-  	newExp.from = workExp.from;
-  	newExp.to = workExp.to;
-  
-  	let assetRegistry = await getAssetRegistry('org.example.ivsnetwork.WorkExp');
-  
-   await assetRegistry.add(newExp);
+
+  let factory = getFactory();
+  AddWorkExp(factory, workExp.info);
 
 }
 
+async function AddWorkExp(factory, data) {
+
+  let newId = UIDGenerator('c');
+  let newExp = factory.newResource(NS, 'WorkExp', newId);
+  newExp.info = data;
+
+  let assetRegistry = await getAssetRegistry(`${NS}.WorkExp`);
+  await assetRegistry.add(newExp);
+
+  return newExp;
+}
+
+/**
+ * @param {org.example.ivsnetwork.CreateRecord} record - the trade to be processed
+ * @transaction
+ */
+async function CreateRecord(record) {
+
+  
+  let factory = getFactory();
+  let newRecordId = UIDGenerator('r');
+
+  //create user
+  let user =  await AddUser(factory, record.userInfo);
+  
+  //create education info
+  let educationRefs = [];
+  let educationInfo = record.educationInfo || [];
+
+  for (let i=0; i<educationInfo.length; i++) {
+    let info = educationInfo[i];
+    let newInfo = await AddEducation(factory, info);
+    let ref = factory.newRelationship(NS, 'Education', newInfo.uid);
+
+    educationRefs.push(ref);
+  }
+
+
+
+
+  //create work exp info
+  let workExpRefs = [];
+  let workExpInfo = record.workExpInfo || [];
+  for (let i=0; i<workExpInfo.length; i++) {
+    let info = workExpInfo[i];
+    let newInfo = await AddWorkExp(factory, info);
+    let ref = factory.newRelationship(NS, 'WorkExp', newInfo.uid);
+
+    workExpRefs.push(ref);
+  }
+
+  
+  //create record
+  let newRecord = factory.newResource(NS, 'Record', newRecordId);
+  newRecord.workSkills = record.workSkills;
+  newRecord.createTime = record.createTime;
+
+  //reference to user
+  newRecord.user = factory.newRelationship(NS, 'User', user.userId);
+
+  //reference education info
+  newRecord.educations = educationRefs;
+
+  //reference workExp info
+  newRecord.workExps = workExpRefs;
+
+  let assetRegistry = await getAssetRegistry(`${NS}.Record`);
+
+  await assetRegistry.add(newRecord);
+
+}
