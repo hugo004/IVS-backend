@@ -1,4 +1,6 @@
 const NS = 'org.example.ivsnetwork';
+const Debug_Key = "@Debug";
+
 
 /**
  * generate a unique id
@@ -26,6 +28,7 @@ async function CreateUser(user) {
   let factory = getFactory();
   AddUser(factory, user.baseInfo);
 }
+
 
 async function AddUser(factory, data) {
   
@@ -91,12 +94,12 @@ async function AddWorkExp(factory, data) {
  */
 async function CreateRecord(record) {
 
-  
+
   let factory = getFactory();
   let newRecordId = UIDGenerator('r');
 
   //create user
-  let user =  await AddUser(factory, record.userInfo);
+  // let user =  await AddUser(factory, record.userInfo);
   
   //create education info
   let educationRefs = [];
@@ -126,9 +129,14 @@ async function CreateRecord(record) {
   let newRecord = factory.newResource(NS, 'Record', newRecordId);
   newRecord.workSkills = record.workSkills;
   newRecord.createTime = record.createTime;
+  newRecord.baseInfo = record.baseInfo;
+
+    //get current user, and the record own by current user
+    let currentUser = getCurrentParticipant();
+    newRecord.owner = factory.newRelationship(NS, 'User', currentUser.getIdentifier());
 
   //reference to user
-  newRecord.user = factory.newRelationship(NS, 'User', user.userId);
+//   newRecord.user = factory.newRelationship(NS, 'User', user.userId);
 
   //reference education info
   newRecord.educations = educationRefs;
@@ -140,4 +148,20 @@ async function CreateRecord(record) {
 
   await assetRegistry.add(newRecord);
 
+}
+
+/**
+ * @param {org.example.ivsnetwork.GetAssetById} param
+ * @transaction
+ */
+async function GetAssetById(param) {
+  
+  //asset name response to the exist asset in the chain
+  let assetName = param.assetName;
+  let id = param.id;
+
+  let registry = await getAssetRegistry(`${NS}.${assetName}`);
+  let asset = await registry.get(id);
+
+  return asset;
 }

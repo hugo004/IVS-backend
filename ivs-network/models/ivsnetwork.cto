@@ -10,7 +10,7 @@ concept BaseInfo {
   o String location optional
 }
 
-participant BaseUser identified by userId {
+abstract participant BaseUser identified by userId {
   o String userId
   o BaseInfo baseInfo
 }
@@ -23,6 +23,7 @@ participant User extends BaseUser {
 transaction CreateUser {
   o BaseInfo baseInfo
 }
+
 
 // CV records
 concept DateRange {
@@ -65,17 +66,22 @@ asset Record identified by recordId {
   o String recordId
   o String workSkills optional
   o DateTime createTime
-  --> User user
+  o BaseInfo baseInfo
+  --> User owner
   --> Education [] educations
   --> WorkExp [] workExps optional
 }
 
 transaction CreateRecord {
-  o BaseInfo userInfo
+  o BaseInfo baseInfo
   o EducationInfo[] educationInfo
   o WorkExpInfo[] workExpInfo optional
   o DateTime createTime
   o String workSkills optional
+}
+
+transaction GetAssetById {
+  o String id
 }
 
 
