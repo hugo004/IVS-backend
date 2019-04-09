@@ -110,9 +110,6 @@ async function CreateRecord(record) {
     educationRefs.push(ref);
   }
 
-
-
-
   //create work exp info
   let workExpRefs = [];
   let workExpInfo = record.workExpInfo || [];

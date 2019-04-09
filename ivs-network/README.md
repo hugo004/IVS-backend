@@ -9,6 +9,20 @@ information verification system network
     docker rmi $(docker images dev-* -q)
 ```
 
+### Keep chain data
+```
+dont't need to stop fabric
+cd /fabric-dev-servers/fabric-scripts/hlfv12/composer (current use version is hlfv12)
+docker-compose stop //stop the container
+docker-compose start //restart the container
+```
+
+### Debug chain code
+```
+console.log('@debug xxx') //add key work e.g @debug
+docker logs -f (container name)>&1 | grep @debug, /e.g dev-peer0.org1.example.com-ivs-network-0.0.2-deploy.7
+```
+
 ### Generate new bna file when the js, cto, acl updated
 ```
  composer archive create -t dir -n .
