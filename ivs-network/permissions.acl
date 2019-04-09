@@ -15,21 +15,22 @@
 /**
  * Sample access control list.
  */
-rule EverybodyCanReadEverything {
-    description: "Allow all participants read access to all resources"
-    participant: "org.example.ivsnetwork.User"
-    operation: READ
+// rule EverybodyCanReadEverything {
+//     description: "Allow all participants read access to all resources"
+//     participant: "org.example.ivsnetwork.User"
+//     operation: READ
+//     resource: "org.example.ivsnetwork.*"
+//     action: ALLOW
+// }
+
+rule EverybodyCanSubmitTransactions {
+    description: "Allow all participants to submit transactions"
+    participant: "org.example.ivsnetwork.*"
+    operation: CREATE
     resource: "org.example.ivsnetwork.*"
     action: ALLOW
 }
 
-// rule EverybodyCanSubmitTransactions {
-//     description: "Allow all participants to submit transactions"
-//     participant: "ivsnetwork.User"
-//     operation: CREATE
-//     resource: "ivsnetwork.Test"
-//     action: ALLOW
-// }
 
 // rule OwnerHasFullAccessToTheirAssets {
 //     description: "Allow all participants full access to their assets"
@@ -63,3 +64,21 @@ rule NetworkAdminSystem {
     resource: "org.hyperledger.composer.system.**"
     action: ALLOW
 }
+
+rule OnlyRecordOwnerFullControll {
+  description: "User can see and update their own record only"
+  participant(p): "org.example.ivsnetwork.User"
+  operation: ALL
+  resource(r): "org.example.ivsnetwork.*"
+  condition: (r.owner.getIdentifier() == p.getIdentifier())
+  action: ALLOW
+}
+
+// rule UserAcessOwnRecordOnly {
+//   description: "Owner can see their own record only"  
+//   participant(p): "org.example.ivsnetwork.User"
+//   operation: READ
+//   resource(r): "org.example.ivsnetwork.Record"
+//   condition: (r.owner.getIdentifier() != p.getIdentifier())
+//   action: DENY
+// }
