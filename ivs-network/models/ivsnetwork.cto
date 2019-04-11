@@ -106,6 +106,7 @@ abstract transaction UserTransaction {
   o String userId
   o String assetName
   o String assetId
+  o Boolean userProfile
   o Boolean allAsset optional
 }
 
@@ -119,9 +120,6 @@ event UserEvent {
   o UserTransaction userTransaction
 }
 
-event GetAssetEvent {
-  o GetAssetById getAssetById
-}
 
 /*
 //records

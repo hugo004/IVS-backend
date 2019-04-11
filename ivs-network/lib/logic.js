@@ -175,6 +175,13 @@ async function GetAssetById(param) {
   return asset;
 }
 
+async function GetAsset(registry, id) {
+
+  let asset = await registry.get(id);
+
+  return asset;
+}
+
 
 /**
  * @param {org.example.ivsnetwork.AuthorizeAccess} authorize
@@ -182,70 +189,73 @@ async function GetAssetById(param) {
  */
 async function AuthorizedAccess(authorize) {
 
-  const factory = getFactory();
-
-  //get response asset
-  const assetName = authorize.assetName;
-  const assetId = authorize.assetId;
-  const assetRegistry = await getAssetRegistry(`${NS}.${assetName}`);
-  const asset = await assetRegistry.get(assetId);
-
-  //update asset's authorized list
-  if (!asset) throw new Error ("Asset not exist");
-
-  let index = -1;
-  if (!asset.authorized)
+  //authorize access user profile only
+  if (authorize.userProfile)
   {
-    asset.authorized = []; //init array
+    const currentUser = getCurrentParticipant();
+  
+    if (!currentUser) throw new Error('A user not exist');
+  
+    //authorize user access permission
+    let index = -1;
+    if (!currentUser.authorized)
+    {
+      currentUser.authorized = []; //add property if not exist
+    }
+    else 
+    {
+      index = currentUser.authorized.indexOf(authorize.userId);
+    }
+  
+    //add user to authorize list
+    if (index < 0)
+    {
+      currentUser.authorized.push(authorize.userId);
+  
+      //emit an event
+      // const event = factory.newEvent(NS, 'UserEvent');
+      // event.userTransaction = authorize;
+      // emit(event);
+  
+      //update user state
+      const registry = await getParticipantRegistry(`${NS}.User`);
+      await registry.update(currentUser);
+    }
   }
   else 
   {
-    index = asset.authorized.indexOf(authorize.userId);
+    //get response asset
+    const assetName = authorize.assetName;
+    const assetId = authorize.assetId;
+    const assetRegistry = await getAssetRegistry(`${NS}.${assetName}`);
+    const asset = await GetAsset(assetRegistry, assetId);
+
+    //update asset's authorized list
+    if (!asset) throw new Error ("Asset not exist");
+
+    let index = -1;
+    if (!asset.authorized)
+    {
+      asset.authorized = []; //init array
+    }
+    else 
+    {
+      index = asset.authorized.indexOf(authorize.userId);
+    }
+    //authorize user access permission
+    if (index < 0)
+    {
+      asset.authorized.push(authorize.userId);
+
+      // //emit an event
+      // const event = factory.newEvent(NS, 'UserEvent');
+      // event.userTransaction = authorize;
+      // emit(event);
+
+      //update asset state
+      await assetRegistry.update(asset);
+    }
   }
-  //authorize user access permission
-  if (index < 0)
-  {
-    asset.authorized.push(authorize.userId);
-
-    // //emit an event
-    // const event = factory.newEvent(NS, 'UserEvent');
-    // event.userTransaction = authorize;
-    // emit(event);
-
-    //update asset state
-    await assetRegistry.update(asset);
-  }
-
-  // const currentUser = getCurrentParticipant();
-  
-
-  // if (!currentUser) throw new Error('A user not exist');
-
-  // //authorize user access permission
-  // let index = -1;
-  // if (!currentUser.authorized)
-  // {
-  //   currentUser.authorized = []; //add property if not exist
-  // }
-  // else 
-  // {
-  //   index = currentUser.authorized.indexOf(authorize.userId);
-  // }
-
-  // //add user to authorize list
-  // if (index < 0)
-  // {
-  //   currentUser.authorized.push(authorize.userId);
-
-    // //emit an event
-    // const event = factory.newEvent(NS, 'UserEvent');
-    // event.userTransaction = authorize;
-    // emit(event);
-
-  //   //update user state
-  //   const registry = await getParticipantRegistry(`${NS}.User`);
-  //   await registry.update(currentUser);
-  // }
 }
 
 /**
@@ -254,24 +264,44 @@ async function AuthorizedAccess(authorize) {
  */
 async function RevokeAccess(revoke) {
   
-  const factory = getFactory();
-  const currentUser = getCurrentParticipant();
-
-  if (!currentUser) throw new Error("A user not exist");
-
-  //remove user access permission
-  const index = currentUser.authorized ? currentUser.authorized.indexOf(revoke.userId) : -1;
-  if (index > -1)
+  if (revoke.userProfile)
   {
-    currentUser.authorized.splice(index, 1);
+    const currentUser = getCurrentParticipant();
 
-    //emit event
-    const event = factory.newEvent(NS, "UserEvent");
-    event.userTransaction = revoke;
-    emit(event);
+    if (!currentUser) throw new Error("A user not exist");
 
-    //update user state
-    const registry = await getParticipantRegistry(`${NS}.User`);
-    await registry.update(currentUser);
+    //remove user access permission
+    const index = currentUser.authorized ? currentUser.authorized.indexOf(revoke.userId) : -1;
+    if (index > -1)
+    {
+      currentUser.authorized.splice(index, 1);
+
+      // //emit event
+      // const event = factory.newEvent(NS, "UserEvent");
+      // event.userTransaction = revoke;
+      // emit(event);
+
+      //update user state
+      const registry = await getParticipantRegistry(`${NS}.User`);
+      await registry.update(currentUser);
+    }
+  }
+  else
+  {
+    //get response asset
+    const assetName = revoke.assetName;
+    const assetId = revoke.assetId;
+    const assetRegistry = await getAssetRegistry(`${NS}.${assetName}`);
+    const asset = await GetAsset(assetRegistry, assetId);
+
+    if (!asset) throw new Error ("Asset not exist");
+
+    //remove user access permission
+    const index = asset.authorized ? asset.authorized.indexOf(revoke.userId) : -1;
+    if (index > -1)
+    {
+      asset.authorized.splice(index, 1);
+      await assetRegistry.update(asset);
+    }
   }
 }
