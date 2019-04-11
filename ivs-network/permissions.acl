@@ -26,7 +26,7 @@
 rule EverybodyCanSubmitTransactions {
     description: "Allow all participants to submit transactions"
     participant: "org.example.ivsnetwork.*"
-    operation: CREATE
+    operation: CREATE, UPDATE
     resource: "org.example.ivsnetwork.*"
     action: ALLOW
 }
@@ -66,11 +66,20 @@ rule NetworkAdminSystem {
 }
 
 rule OnlyRecordOwnerFullControll {
-  description: "User can see and update their own record only"
+  description: "User can see can full control on their own record only"
   participant(p): "org.example.ivsnetwork.User"
   operation: ALL
   resource(r): "org.example.ivsnetwork.*"
   condition: (r.owner.getIdentifier() == p.getIdentifier())
+  action: ALLOW
+}
+
+rule AllowAuthorizedUserAccess {
+  description: "Authorized user can access the right"
+  participant(p): "org.example.ivsnetwork.User"
+  operation: READ
+  resource(r): "org.example.ivsnetwork.*"
+  condition: (r.authorized && r.authorized.indexOf(p.getIdentifier()) > -1)
   action: ALLOW
 }
 
