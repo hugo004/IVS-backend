@@ -45,6 +45,11 @@ transaction InviteChannelMember {
   o String[] users
 }
 
+transaction RemoveChannelMember {
+  o String channelId
+  o String[] users
+}
+
 
 // CV records
 concept DateRange {

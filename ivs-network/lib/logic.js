@@ -419,3 +419,45 @@ async function CreateChannel(channel) {
     await cRegistry.update(channel);
   }
  }
+
+ /**
+  * @param {org.example.ivsnetwork.RemoveChannelMember} remove
+  * @transaction
+  */
+ async function RemoveChannelMember(remove) {
+
+  //check channel exist
+  const cRegistry = await getParticipantRegistry(`${NS}.Channel`);
+  const channelId = remove.channelId;
+  const channel = await cRegistry.get(channelId);
+  if (!channel) throw new Error('Channel not exist');
+
+  //check channel member exist
+  const pRegistry = await getParticipantRegistry(`${NS}.User`);
+  const members = channel.members || [];
+
+  const memberToRemove = remove.users || [];
+  for (let i=0; i<memberToRemove.length; i++) {
+    const userId = memberToRemove[i];
+    const index = members.indexOf(userId);
+
+      //remove channel member
+    if (index > -1)
+    {
+      //remove the channel id from the removed channel member's channels attribute
+      const user = await pRegistry.get(userId);
+      const userChannels = user.channels || [];
+      userChannels.splice(userChannels.indexOf(channelId), 1);
+      
+      //update removed user's channel info
+      user.channels = userChannels;
+      await pRegistry.update(user);
+
+      //remove member from channel
+      members.splice(index, 1);
+    }
+  }
+
+  //update channel info
+  await cRegistry.update(channel);
+ }
