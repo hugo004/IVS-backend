@@ -15,25 +15,34 @@ abstract participant BaseUser identified by userId {
   o String userId
   o BaseInfo baseInfo
   o String[] authorized optional
-  o Channel[] channels optional
+  o String[] channels optional
 
 }
 
 participant User extends BaseUser {
 }
 
-//channel group define
-participant Channel identified by channelId {
-  o String channelId
-  --> User[] members
-}
-
 transaction CreateUser {
   o BaseInfo baseInfo
 }
 
-transaction ChannelInvite {
-  --> User[] users
+
+//channel group define
+participant Channel identified by channelId {
+  o String channelId
+  o String name
+  o String owner
+  o DateTime createTime
+  o String[] members optional
+}
+
+transaction CreateChannel {
+  o String name
+  o String[] members
+}
+transaction InviteChannelMember {
+  o String channelId
+  o String[] users
 }
 
 

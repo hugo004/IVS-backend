@@ -305,3 +305,117 @@ async function RevokeAccess(revoke) {
     }
   }
 }
+
+/**
+ * @param {org.example.ivsnetwork.CreateChannel} channel
+ * @transaction
+ */
+async function CreateChannel(channel) {
+
+  const factory = getFactory();
+  const newChannelId = UIDGenerator('c');
+  const me = getCurrentParticipant();
+
+  if (!me) throw new Error("User not exist");
+
+  //create channel
+  const newChannel = factory.newResource(NS, 'Channel', newChannelId);
+  newChannel.name = channel.name;
+  newChannel.owner = me.getIdentifier();
+  newChannel.createTime = channel.timestamp;
+
+  const pRegistry = await getParticipantRegistry(`${NS}.User`);
+
+  //check invite user is exit
+  if (channel.members)
+  {
+    const members = channel.members || [];
+    for (let i=0; i<members.length; i++) {
+      const id = members[i];
+      const user = await pRegistry.get(id);
+
+      //if have invalid user, throw error and stop pogram
+      if (!user) throw new Error('User not exist');
+      
+      //update user's channels data
+      const userChannels = user.channels || [];
+      const index = userChannels.indexOf(newChannelId);
+      // join channel if not join
+      if (index < 0)
+      {
+        userChannels.push(newChannelId);
+      }
+      user.channels = userChannels;
+
+      //udpate user belonging channel 
+      await pRegistry.update(user);
+    }
+
+    //add user to channel
+    newChannel.members = members;
+  }
+
+  //registry the channel
+  const cRegistry = await getParticipantRegistry(`${NS}.Channel`);
+  await cRegistry.add(newChannel);
+}
+
+/**
+ * @param {org.example.ivsnetwork.InviteChannelMember} invite
+ * @transaction
+ */
+
+ async function InviteChannelMember(invite) {
+
+  //check channel exist
+  const cRegistry = await getParticipantRegistry(`${NS}.Channel`);
+  const channelId = invite.channelId;
+  const channel = await cRegistry.get(channelId);
+  if (!channel) throw new Error('Channel not exist');
+
+  //check user exist  
+  const pRegistry = await getParticipantRegistry(`${NS}.User`);
+  const users = invite.users || [];
+  for (let i=0; i<users.length; i++) {
+    const id = users[i];
+    const user = await pRegistry.get(id);
+
+    //if have invalid user, throw error and stop pogram
+    if (!user) throw new Error('User not exist');
+
+    //update user's channel info
+    const userChannels = user.channels || [];
+    const index = userChannels.indexOf(channelId);
+    // join channel if not join
+    if (index < 0)
+    {
+      userChannels.push(channelId);
+    }
+    user.channels = userChannels;
+
+    //udpate user belonging channel 
+    await pRegistry.update(user);
+
+  }
+
+  //find the user no join this channel
+  const members = channel.members || [];
+  const newChannelMember = [];
+  for (let i=0; i<users.length; i++) {
+    const index = members.indexOf(users[i]);
+    if (index < 0)
+    {
+      newChannelMember.push(users[i]);
+    }
+  }
+
+  //add user to channel
+  if (newChannelMember.length > 0)
+  {
+    members.push(...newChannelMember);
+
+    //update channel's member info
+    channel.members = members;
+    await cRegistry.update(channel);
+  }
+ }
