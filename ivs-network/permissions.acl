@@ -92,11 +92,20 @@ rule AllowAuthorizedUserAccess {
   action: ALLOW
 }
 
-// rule UserAcessOwnRecordOnly {
-//   description: "Owner can see their own record only"  
-//   participant(p): "org.example.ivsnetwork.User"
-//   operation: READ
-//   resource(r): "org.example.ivsnetwork.Record"
-//   condition: (r.owner.getIdentifier() != p.getIdentifier())
-//   action: DENY
-// }
+rule ChannelMemberCanAccessOwnChannel{
+  description: "A channel member can access their own channel"
+  participant(p): "org.example.ivsnetwork.User"
+  operation: ALL
+  resource(r): "org.example.ivsnetwork.*"
+  condition: (p.channels && p.channels.indexOf(r.getIdentifier()) > -1)
+  action: ALLOW
+}
+
+rule ChannelMemberCanShareAsset {
+  description: "A channel member can access the asset in the channel"
+  participant(p): "org.example.ivsnetwork.User"
+  operation: ALL
+  resource(r): "org.example.ivsnetwork.*"
+  condition: (p.channels && p.channels.indexOf(r.owner.getIdentifier()) > -1)
+  action: ALLOW
+}
