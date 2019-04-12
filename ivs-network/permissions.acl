@@ -66,7 +66,7 @@ rule NetworkAdminSystem {
 }
 
 rule OnlyRecordOwnerFullControll {
-  description: "User can see can full control on their own record only"
+  description: "User have full controll on own record"
   participant(p): "org.example.ivsnetwork.User"
   operation: ALL
   resource(r): "org.example.ivsnetwork.*"
@@ -74,8 +74,17 @@ rule OnlyRecordOwnerFullControll {
   action: ALLOW
 }
 
+rule OnlyProfileOwnerFullControll {
+  description: "User havel full controll on own profile"
+  participant(p): "org.example.ivsnetwork.User"
+  operation: ALL
+  resource(r): "org.example.ivsnetwork.User"
+  condition: (r.userId == p.getIdentifier())
+  action: ALLOW
+}
+
 rule AllowAuthorizedUserAccess {
-  description: "Authorized user can access the right"
+  description: "Authorized user can access record"
   participant(p): "org.example.ivsnetwork.User"
   operation: READ
   resource(r): "org.example.ivsnetwork.*"
