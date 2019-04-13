@@ -187,43 +187,88 @@ async function GetAsset(registry, id) {
  * @param {org.example.ivsnetwork.AuthorizeAccess} authorize
  * @transaction
  */
-async function AuthorizedAccess(authorize) {
+async function AuthorizeAccess(authorize) {
 
-  //authorize access user profile only
-  if (authorize.userProfile)
+}
+
+/**
+ * @param {org.example.ivsnetwork.RevokeAccess} revoke
+ * @transaction
+ */
+async function RevokeAccess(revoke) {
+  
+}
+
+
+/**
+ * @param {org.example.ivsnetwork.AuthorizeAccessProfile} authorize
+ * @transaction
+ */
+async function AuthorizeAccessProfile(authorize) {
+  
+  const me = getCurrentParticipant();
+  if (!me) throw new Error('A user not exist');
+
+  //authorize user access permission
+  let index = -1;
+  if (!me.authorized)
   {
-    const currentUser = getCurrentParticipant();
-  
-    if (!currentUser) throw new Error('A user not exist');
-  
-    //authorize user access permission
-    let index = -1;
-    if (!currentUser.authorized)
-    {
-      currentUser.authorized = []; //add property if not exist
-    }
-    else 
-    {
-      index = currentUser.authorized.indexOf(authorize.userId);
-    }
-  
-    //add user to authorize list
-    if (index < 0)
-    {
-      currentUser.authorized.push(authorize.userId);
-  
-      //emit an event
-      // const event = factory.newEvent(NS, 'UserEvent');
-      // event.userTransaction = authorize;
-      // emit(event);
-  
-      //update user state
-      const registry = await getParticipantRegistry(`${NS}.User`);
-      await registry.update(currentUser);
-    }
+    me.authorized = []; //add property if not exist
   }
   else 
   {
+    index = me.authorized.indexOf(authorize.userId);
+  }
+
+  //add user to authorize list
+  if (index < 0)
+  {
+    me.authorized.push(authorize.userId);
+
+    //emit an event
+    // const event = factory.newEvent(NS, 'UserEvent');
+    // event.userTransaction = authorize;
+    // emit(event);
+
+    //update user state
+    const registry = await getParticipantRegistry(`${NS}.User`);
+    await registry.update(me);
+  }
+}
+
+/**
+ * 
+ * @param {org.example.ivsnetwork.RevokeAccessProfile} revoke 
+ * @transaction
+ */
+async function RevokeAccessProfile(revoke) {
+  const me = getCurrentParticipant();
+
+  if (!me) throw new Error("A user not exist");
+
+  //remove user access permission
+  const index = me.authorized ? me.authorized.indexOf(revoke.userId) : -1;
+  if (index > -1)
+  {
+    me.authorized.splice(index, 1);
+
+    // //emit event
+    // const event = factory.newEvent(NS, "UserEvent");
+    // event.userTransaction = revoke;
+    // emit(event);
+
+    //update user state
+    const registry = await getParticipantRegistry(`${NS}.User`);
+    await registry.update(me);
+  }
+}
+
+/**
+ * 
+ * @param {org.example.ivsnetwork.AuthorizeAccessAsset} authorize
+ * @transaction 
+ */
+async function AuthorizeAccessAsset(authorize) {
     //get response asset
     const assetName = authorize.assetName;
     const assetId = authorize.assetId;
@@ -255,39 +300,14 @@ async function AuthorizedAccess(authorize) {
       //update asset state
       await assetRegistry.update(asset);
     }
-  }
 }
 
 /**
- * @param {org.example.ivsnetwork.RevokeAccess} revoke
+ * 
+ * @param {org.example.ivsnetwork.RevokeAccessAsset} revoke 
  * @transaction
  */
-async function RevokeAccess(revoke) {
-  
-  if (revoke.userProfile)
-  {
-    const currentUser = getCurrentParticipant();
-
-    if (!currentUser) throw new Error("A user not exist");
-
-    //remove user access permission
-    const index = currentUser.authorized ? currentUser.authorized.indexOf(revoke.userId) : -1;
-    if (index > -1)
-    {
-      currentUser.authorized.splice(index, 1);
-
-      // //emit event
-      // const event = factory.newEvent(NS, "UserEvent");
-      // event.userTransaction = revoke;
-      // emit(event);
-
-      //update user state
-      const registry = await getParticipantRegistry(`${NS}.User`);
-      await registry.update(currentUser);
-    }
-  }
-  else
-  {
+async function RevokeAccessAsset(revoke) {
     //get response asset
     const assetName = revoke.assetName;
     const assetId = revoke.assetId;
@@ -303,7 +323,6 @@ async function RevokeAccess(revoke) {
       asset.authorized.splice(index, 1);
       await assetRegistry.update(asset);
     }
-  }
 }
 
 /**

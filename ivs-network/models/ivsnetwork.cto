@@ -50,6 +50,53 @@ transaction RemoveChannelMember {
   o String[] users
 }
 
+//access control
+abstract transaction UserTransaction {
+  o String userId
+  o String assetName
+  o String assetId
+  o Boolean userProfile
+  o Boolean allAsset optional
+}
+
+abstract transaction AuthorizeTransaction {
+  o String userId
+  o DateTime expireTime
+}
+
+abstract transaction AuthorizeAssetTransaction extends AuthorizeTransaction {
+  o String assetId
+  o String assetName
+  o Boolean allAsset optional
+}
+
+transaction AuthorizeAccess extends UserTransaction {
+}
+
+transaction RevokeAccess extends UserTransaction {
+}
+
+transaction AuthorizeAccessProfile extends AuthorizeTransaction{
+}
+
+transaction RevokeAccessProfile extends AuthorizeTransaction {
+}
+
+transaction AuthorizeAccessAsset extends AuthorizeAssetTransaction {
+}
+
+transaction RevokeAccessAsset extends AuthorizeAssetTransaction {
+}
+
+event UserEvent {
+  o UserTransaction userTransaction
+}
+
+//request access permissions
+transaction RequestAccess {
+  o String assetId
+  o String assetName
+}
 
 // CV records
 concept DateRange {
@@ -115,24 +162,7 @@ transaction GetAssetById {
   o String assetName
 }
 
-//access control
-abstract transaction UserTransaction {
-  o String userId
-  o String assetName
-  o String assetId
-  o Boolean userProfile
-  o Boolean allAsset optional
-}
 
-transaction AuthorizeAccess extends UserTransaction {
-}
-
-transaction RevokeAccess extends UserTransaction {
-}
-
-event UserEvent {
-  o UserTransaction userTransaction
-}
 
 
 /*
