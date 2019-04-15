@@ -184,84 +184,6 @@ async function GetAsset(registry, id) {
 
 
 /**
- * @param {org.example.ivsnetwork.AuthorizeAccessAll} authorize
- * @transaction
- */
-async function AuthorizeAccessAll(authorize) {
-
-  // const factory = getFactory();
-  for (let i=0; i<allAssets.length; i++) {
-    const assetName =  allAssets[i];
-
-    //get all asset record of current asset
-    const registry = await getAssetRegistry(`${NS}.${assetName}`);
-    const all = await registry.getAll() || [];
-
-    //loop for each asset to update authorize list
-    for (let a=0; a<all.length; a++) {
-      const currentAsset = all[a];
-      const authorizeData = {
-        "userId": authorize.userId,
-        "assetName": assetName,
-        "assetId": currentAsset.getIdentifier(),
-      };
-      // //emit the event
-      // const event = factory.newEvent(NS, 'AuthorizeAccessEvent');
-      // event.userId = authorize.userId;
-      // event.assetName = assetName;
-      // event.assetId = currentAsset.getIdentifier();
-      // emit(event);
-      //invoke aturhozeAccessAsset transaction to authorize individually
-      await AuthorizeAccessAsset(authorizeData);
-    }
-  }
-
-  //authorize access profile
-  await AuthorizeAccessProfile({
-    "userId": authorize.userId
-  });
-}
-
-/**
- * @param {org.example.ivsnetwork.RevokeAccessAll} revoke
- * @transaction
- */
-async function RevokeAccessAll(revoke) {
-  //remove userId from each asset in business network
-  for (let i=0; i<allAssets.length; i++) {
-    const assetName =  allAssets[i];
-
-    //get all asset record of current asset
-    const registry = await getAssetRegistry(`${NS}.${assetName}`);
-    const all = await registry.getAll() || [];
-    
-    //loop for each asset to update authorize list
-    for (let a=0; a<all.length; a++) {
-      const currentAsset = all[a];
-      const authorizeData = {
-        "userId": revoke.userId,
-        "assetName": assetName,
-        "assetId": currentAsset.getIdentifier(),
-      };
-      // //emit the event
-      // const event = factory.newEvent(NS, 'RevokeAccessEvent');
-      // event.userId = revoke.userId;
-      // event.assetName = assetName;
-      // event.assetId = currentAsset.getIdentifier();
-      // emit(event);
-      //invoke revokeAccessAsset transaction to revoke permission individually
-      await RevokeAccessAsset(authorizeData);
-    }
-  }
-
-  //revoke access profile
-  await RevokeAccessProfile({
-    "userId": revoke.userId
-  });
-}
-
-
-/**
  * @param {org.example.ivsnetwork.AuthorizeAccessProfile} authorize
  * @transaction
  */
@@ -328,6 +250,7 @@ async function RevokeAccessProfile(revoke) {
  * @transaction 
  */
 async function AuthorizeAccessAsset(authorize) {
+  
   //get response asset
   const assetName = authorize.assetName;
   const assetId = authorize.assetId;
@@ -382,6 +305,152 @@ async function RevokeAccessAsset(revoke) {
     asset.authorized.splice(index, 1);
     await assetRegistry.update(asset);
   }
+}
+
+
+/**
+ * 
+ * @param {org.example.ivsnetwork.AuthorizeAccessSpecifyRecord} authorize 
+ * @transaction
+ */
+async function AuthorizeAccessSpecifyRecord(authorize) {
+
+  const assetName = authorize.assetName;
+  const registry = await getAssetRegistry(`${NS}.${assetName}`);
+  const authorizeAll = authorize.assetId.length <= 0;
+  
+  //if asset id param's length is < 1, perform authorize all record of this asset
+  if (authorizeAll) {
+    //get all asset info
+    const all = await registry.getAll() || [];
+
+    //loop for each asset to update authorize list
+    for (let i=0; i<all.length; i++) {
+      const currentAsset = all[i];
+      const authorizeData = {
+        "userId": authorize.userId,
+        "assetName": assetName,
+        "assetId": currentAsset.getIdentifier(),
+      };
+      // //emit the event
+      // const event = factory.newEvent(NS, 'AuthorizeAccessEvent');
+      // event.userId = authorize.userId;
+      // event.assetName = assetName;
+      // event.assetId = currentAsset.getIdentifier();
+      // emit(event);
+      //invoke aturhozeAccessAsset transaction to authorize individually
+      await AuthorizeAccessAsset(authorizeData);
+    }
+  }
+  //else perform authorize specify record
+  else {
+    for (let i=0; i<authorize.assetId.length; i++) {
+      const assetId = authorize.assetId[i];
+      const authorizeInfo = {
+        "userId": authorize.userId,
+        "assetName": assetName,
+        "assetId": assetId
+      };
+
+      await AuthorizeAccessAsset(authorizeInfo);
+    }
+  }
+}
+
+/**
+ * 
+ * @param {org.example.ivsnetwork.RevokeAccessSpecifyRecord} revoke 
+ * @transaction
+ */
+async function RevokeAccessSpecifyRecord(revoke) {
+
+  const assetName = revoke.assetName;
+  const registry = await getAssetRegistry(`${NS}.${assetName}`);
+  const revokeAll = revoke.assetId.length <= 0;
+  
+  //if asset id param's length is < 1, perform revoke all record of this asset
+  if (revokeAll) {
+    //get all asset info
+    const all = await registry.getAll() || [];
+
+    //loop for each asset to update authorize list
+    for (let i=0; i<all.length; i++) {
+      const currentAsset = all[i];
+      const revokeInfo = {
+        "userId": revoke.userId,
+        "assetName": assetName,
+        "assetId": currentAsset.getIdentifier(),
+      };
+      // //emit the event
+      // const event = factory.newEvent(NS, 'RevokeAccessEvent');
+      // event.userId = authorize.userId;
+      // event.assetName = assetName;
+      // event.assetId = currentAsset.getIdentifier();
+      // emit(event);
+      //invoke aturhozeAccessAsset transaction to authorize individually
+      await RevokeAccessAsset(revokeInfo);
+    }
+  }
+  //else perform revoke specify record
+  else {
+    for (let i=0; i<revoke.assetId.length; i++) {
+      const assetId = revoke.assetId[i];
+      const revokeInfo = {
+        "userId": revoke.userId,
+        "assetName": assetName,
+        "assetId": assetId
+      };
+
+      await RevokeAccessAsset(revokeInfo);
+    }
+  }
+}
+
+/**
+ * @param {org.example.ivsnetwork.AuthorizeAccessAll} authorize
+ * @transaction
+ */
+async function AuthorizeAccessAll(authorize) {
+
+  // const factory = getFactory();
+  for (let i=0; i<allAssets.length; i++) {
+    const assetName =  allAssets[i];
+    const authorizeInfo = {
+      "userId": authorize.userId,
+      "assetName": assetName,
+      "assetId": []
+    };
+
+    await AuthorizeAccessSpecifyRecord(authorizeInfo);
+  }
+
+  //authorize access profile
+  await AuthorizeAccessProfile({
+    "userId": authorize.userId
+  });
+}
+
+/**
+ * @param {org.example.ivsnetwork.RevokeAccessAll} revoke
+ * @transaction
+ */
+async function RevokeAccessAll(revoke) {
+  //remove userId from each asset in business network
+  for (let i=0; i<allAssets.length; i++) {
+    const assetName =  allAssets[i];
+    const revokeInfo = {
+      "userId": revoke.userId,
+      "assetName": assetName,
+      "assetId": []
+    };
+    
+    await RevokeAccessSpecifyRecord(revokeInfo);
+  }
+
+  //revoke access profile
+  await RevokeAccessProfile({
+    "userId": revoke.userId
+  });
 }
 
 /**

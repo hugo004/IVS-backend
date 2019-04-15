@@ -69,11 +69,23 @@ abstract transaction AuthorizeAssetTransaction extends AuthorizeTransaction {
   o String assetName
 }
 
+abstract transaction AuthorizeAllAssetTransaction extends AuthorizeTransaction {
+  o String assetName
+  o String[] assetId optional
+}
+
 // authorize, revoke access user's all asset
 transaction AuthorizeAccessAll extends AuthorizeTransaction{  
 }
 
 transaction RevokeAccessAll extends AuthorizeTransaction {
+}
+
+//authorize, revoke access of user's specify asset record
+transaction AuthorizeAccessSpecifyRecord extends AuthorizeAllAssetTransaction{
+}
+
+transaction RevokeAccessSpecifyRecord extends AuthorizeAllAssetTransaction{
 }
 
 //authorize, revoke access user's profile 
@@ -92,8 +104,8 @@ transaction RevokeAccessAsset extends AuthorizeAssetTransaction {
 
 event AuthorizeAccessEvent {
   o String userId
-  o String assetName
-  o String assetId
+  o String[] assetName
+  o String[] assetId
 
 }
 
