@@ -1,6 +1,6 @@
 const NS = 'org.example.ivsnetwork';
 const Debug_Key = "@Debug";
-
+const allAssets = ['Education', 'Record', 'VolunteerRecord', 'WorkExp'];
 
 /**
  * generate a unique id
@@ -184,19 +184,80 @@ async function GetAsset(registry, id) {
 
 
 /**
- * @param {org.example.ivsnetwork.AuthorizeAccess} authorize
+ * @param {org.example.ivsnetwork.AuthorizeAccessAll} authorize
  * @transaction
  */
-async function AuthorizeAccess(authorize) {
+async function AuthorizeAccessAll(authorize) {
 
+  // const factory = getFactory();
+  for (let i=0; i<allAssets.length; i++) {
+    const assetName =  allAssets[i];
+
+    //get all asset record of current asset
+    const registry = await getAssetRegistry(`${NS}.${assetName}`);
+    const all = await registry.getAll() || [];
+
+    //loop for each asset to update authorize list
+    for (let a=0; a<all.length; a++) {
+      const currentAsset = all[a];
+      const authorizeData = {
+        "userId": authorize.userId,
+        "assetName": assetName,
+        "assetId": currentAsset.getIdentifier(),
+      };
+      // //emit the event
+      // const event = factory.newEvent(NS, 'AuthorizeAccessEvent');
+      // event.userId = authorize.userId;
+      // event.assetName = assetName;
+      // event.assetId = currentAsset.getIdentifier();
+      // emit(event);
+      //invoke aturhozeAccessAsset transaction to authorize individually
+      await AuthorizeAccessAsset(authorizeData);
+    }
+  }
+
+  //authorize access profile
+  await AuthorizeAccessProfile({
+    "userId": authorize.userId
+  });
 }
 
 /**
- * @param {org.example.ivsnetwork.RevokeAccess} revoke
+ * @param {org.example.ivsnetwork.RevokeAccessAll} revoke
  * @transaction
  */
-async function RevokeAccess(revoke) {
-  
+async function RevokeAccessAll(revoke) {
+  //remove userId from each asset in business network
+  for (let i=0; i<allAssets.length; i++) {
+    const assetName =  allAssets[i];
+
+    //get all asset record of current asset
+    const registry = await getAssetRegistry(`${NS}.${assetName}`);
+    const all = await registry.getAll() || [];
+    
+    //loop for each asset to update authorize list
+    for (let a=0; a<all.length; a++) {
+      const currentAsset = all[a];
+      const authorizeData = {
+        "userId": revoke.userId,
+        "assetName": assetName,
+        "assetId": currentAsset.getIdentifier(),
+      };
+      // //emit the event
+      // const event = factory.newEvent(NS, 'RevokeAccessEvent');
+      // event.userId = revoke.userId;
+      // event.assetName = assetName;
+      // event.assetId = currentAsset.getIdentifier();
+      // emit(event);
+      //invoke revokeAccessAsset transaction to revoke permission individually
+      await RevokeAccessAsset(authorizeData);
+    }
+  }
+
+  //revoke access profile
+  await RevokeAccessProfile({
+    "userId": revoke.userId
+  });
 }
 
 
@@ -237,7 +298,6 @@ async function AuthorizeAccessProfile(authorize) {
 }
 
 /**
- * 
  * @param {org.example.ivsnetwork.RevokeAccessProfile} revoke 
  * @transaction
  */
@@ -264,42 +324,41 @@ async function RevokeAccessProfile(revoke) {
 }
 
 /**
- * 
  * @param {org.example.ivsnetwork.AuthorizeAccessAsset} authorize
  * @transaction 
  */
 async function AuthorizeAccessAsset(authorize) {
-    //get response asset
-    const assetName = authorize.assetName;
-    const assetId = authorize.assetId;
-    const assetRegistry = await getAssetRegistry(`${NS}.${assetName}`);
-    const asset = await GetAsset(assetRegistry, assetId);
+  //get response asset
+  const assetName = authorize.assetName;
+  const assetId = authorize.assetId;
+  const assetRegistry = await getAssetRegistry(`${NS}.${assetName}`);
+  const asset = await GetAsset(assetRegistry, assetId);
 
-    //update asset's authorized list
-    if (!asset) throw new Error ("Asset not exist");
+  //update asset's authorized list
+  if (!asset) throw new Error ("Asset not exist");
 
-    let index = -1;
-    if (!asset.authorized)
-    {
-      asset.authorized = []; //init array
-    }
-    else 
-    {
-      index = asset.authorized.indexOf(authorize.userId);
-    }
-    //authorize user access permission
-    if (index < 0)
-    {
-      asset.authorized.push(authorize.userId);
+  let index = -1;
+  if (!asset.authorized)
+  {
+    asset.authorized = []; //init array
+  }
+  else 
+  {
+    index = asset.authorized.indexOf(authorize.userId);
+  }
+  //authorize user access permission
+  if (index < 0)
+  {
+    asset.authorized.push(authorize.userId);
 
-      // //emit an event
-      // const event = factory.newEvent(NS, 'UserEvent');
-      // event.userTransaction = authorize;
-      // emit(event);
+    // //emit an event
+    // const event = factory.newEvent(NS, 'UserEvent');
+    // event.userTransaction = authorize;
+    // emit(event);
 
-      //update asset state
-      await assetRegistry.update(asset);
-    }
+    //update asset state
+    await assetRegistry.update(asset);
+  }
 }
 
 /**
@@ -308,21 +367,21 @@ async function AuthorizeAccessAsset(authorize) {
  * @transaction
  */
 async function RevokeAccessAsset(revoke) {
-    //get response asset
-    const assetName = revoke.assetName;
-    const assetId = revoke.assetId;
-    const assetRegistry = await getAssetRegistry(`${NS}.${assetName}`);
-    const asset = await GetAsset(assetRegistry, assetId);
+  //get response asset
+  const assetName = revoke.assetName;
+  const assetId = revoke.assetId;
+  const assetRegistry = await getAssetRegistry(`${NS}.${assetName}`);
+  const asset = await GetAsset(assetRegistry, assetId);
 
-    if (!asset) throw new Error ("Asset not exist");
+  if (!asset) throw new Error ("Asset not exist");
 
-    //remove user access permission
-    const index = asset.authorized ? asset.authorized.indexOf(revoke.userId) : -1;
-    if (index > -1)
-    {
-      asset.authorized.splice(index, 1);
-      await assetRegistry.update(asset);
-    }
+  //remove user access permission
+  const index = asset.authorized ? asset.authorized.indexOf(revoke.userId) : -1;
+  if (index > -1)
+  {
+    asset.authorized.splice(index, 1);
+    await assetRegistry.update(asset);
+  }
 }
 
 /**

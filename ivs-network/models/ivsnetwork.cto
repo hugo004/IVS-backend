@@ -61,31 +61,40 @@ abstract transaction UserTransaction {
 
 abstract transaction AuthorizeTransaction {
   o String userId
-  o DateTime expireTime
+  o DateTime expireTime optional
 }
 
 abstract transaction AuthorizeAssetTransaction extends AuthorizeTransaction {
   o String assetId
   o String assetName
-  o Boolean allAsset optional
 }
 
-transaction AuthorizeAccess extends UserTransaction {
+// authorize, revoke access user's all asset
+transaction AuthorizeAccessAll extends AuthorizeTransaction{  
 }
 
-transaction RevokeAccess extends UserTransaction {
+transaction RevokeAccessAll extends AuthorizeTransaction {
 }
 
+//authorize, revoke access user's profile 
 transaction AuthorizeAccessProfile extends AuthorizeTransaction{
 }
 
 transaction RevokeAccessProfile extends AuthorizeTransaction {
 }
 
+//authorize, revoke access user's specify asset
 transaction AuthorizeAccessAsset extends AuthorizeAssetTransaction {
 }
 
 transaction RevokeAccessAsset extends AuthorizeAssetTransaction {
+}
+
+event AuthorizeAccessEvent {
+  o String userId
+  o String assetName
+  o String assetId
+
 }
 
 event UserEvent {
