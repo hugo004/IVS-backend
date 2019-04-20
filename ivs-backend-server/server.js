@@ -188,8 +188,8 @@ app.post(`${Path}/requestAccessAsset`, async function(req, res) {
     let connection = Network.getConnection();
     let pRegistry = await connection.getParticipantRegistry(`${NS}.User`);
 
-    //get sender and receiver info
-    let sender = await pRegistry.get(senderId);
+    //check sender and receiver exist
+    // let sender = await pRegistry.get(senderId);
     let receiver = await pRegistry.get(receiverId);
 
     //check requested asset exist
@@ -197,6 +197,7 @@ app.post(`${Path}/requestAccessAsset`, async function(req, res) {
     let requestList = [];
 
     for (let i=0; i<assetId.length; i++) {
+      let id = assetId[i];
       let targetAsset = await aRegistry.get(id);
 
       //check the requested asset is own by receiver
@@ -226,6 +227,7 @@ app.post(`${Path}/requestAccessAsset`, async function(req, res) {
     //new transaction
     let factory = definition.getFactory();
     let transaction = factory.newTransaction(NS, 'RequestAccessAsset');
+    // transaction.senderId = senderId;
     transaction.receiverId = receiverId;
     transaction.assetName = assetName;
     transaction.assetId = requestList;
