@@ -1,0 +1,30 @@
+{
+  "name": "ivs-backend-project",
+  "version": "1.0.0",
+  "description": "ivs-network-backend",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "dependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-env": "^1.7.0",
+    "babel-register": "^6.26.0",
+    "composer-admin": "^0.20.8",
+    "composer-client": "^0.20.8",
+    "composer-common": "^0.20.8",
+    "cookie-parser": "^1.4.4",
+    "express": "^4.16.4",
+    "multer": "^1.4.1"
+  },
+  "devDependencies": {
+    "nodemon": "^1.18.11"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "babel-node index.js",
+    "dev": "nodemon index.js --exec babel-node --presets babel-preset-env"
+  },
+  "author": "hugo",
+  "license": "ISC"
+}
