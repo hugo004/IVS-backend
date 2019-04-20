@@ -24,12 +24,20 @@
 // }
 
 rule EverybodyCanSubmitTransactions {
-    description: "Allow all participants to submit transactions"
-    participant: "org.example.ivsnetwork.*"
-    operation: CREATE, UPDATE
-    resource: "org.example.ivsnetwork.*"
-    action: ALLOW
+  description: "Allow all participants to submit transactions"
+  participant: "org.example.ivsnetwork.*"
+  operation: CREATE, UPDATE
+  resource: "org.example.ivsnetwork.*"
+  action: ALLOW
 }
+
+// rule EveryBodyCanReadUserProfile {
+//   description: "Allow all participants to read user's profile"
+//   participant: "org.example.ivsnetwork.User"
+//   operation: READ
+//   resource: "org.example.ivsnetwork.User"
+//   action: ALLOW
+// }
 
 
 // rule OwnerHasFullAccessToTheirAssets {
@@ -91,6 +99,17 @@ rule AllowAuthorizedUserAccess {
   condition: (r.authorized && r.authorized.indexOf(p.getIdentifier()) > -1)
   action: ALLOW
 }
+
+//request asset rule control
+rule SenderAndReceiverCanAccessRequest {
+  description: "The request sender and receiver can access request record"
+  participant(p): "org.example.ivsnetwork.User"
+  operation: READ
+  resource(r): "org.example.ivsnetwork.Request"
+  condition: (r.senderId == p.getIdentifier() || r.receiverId == p.getIdentifier())
+  action: ALLOW
+}
+
 
 rule ChannelMemberCanAccessOwnChannel{
   description: "A channel member can access their own channel"

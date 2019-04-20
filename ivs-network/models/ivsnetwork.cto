@@ -51,13 +51,6 @@ transaction RemoveChannelMember {
 }
 
 //access control
-abstract transaction UserTransaction {
-  o String userId
-  o String assetName
-  o String assetId
-  o Boolean userProfile
-  o Boolean allAsset optional
-}
 
 abstract transaction AuthorizeTransaction {
   o String userId
@@ -103,21 +96,50 @@ transaction RevokeAccessAsset extends AuthorizeAssetTransaction {
 }
 
 event AuthorizeAccessEvent {
-  o String userId
+  o String sender
+  o String receiver
   o String[] assetName
   o String[] assetId
 
 }
 
-event UserEvent {
-  o UserTransaction userTransaction
+//request access user asset control
+enum StatusType {
+  o ACCEPT
+  o DENY
+  o UNDETERMINED
 }
 
-//request access permissions
-transaction RequestAccess {
-  o String assetId
-  o String assetName
+concept RequestInfo {
+  o String senderId
+  o String receiverId
+  o StatusType status 
+  o String[] requested optional //should store the asset identifier no just id
+  o String remarks optional
+  o DateTime expireTime optional
 }
+
+asset Request identified by requestId {
+  o String requestId
+  // o RequestInfo requestInfo
+  o String senderId
+  o String receiverId
+  o StatusType status default='UNDETERMINED'
+  o String[] requested optional //should store the asset identifier no just id
+  o String remarks optional
+  o DateTime expireTime optional
+}
+
+abstract transaction RequestTransaction {
+  o String receiverId
+}
+
+transaction RequestAccessAsset extends RequestTransaction {
+  o String assetName
+  o String [] assetId
+}
+
+
 
 // CV records
 concept DateRange {

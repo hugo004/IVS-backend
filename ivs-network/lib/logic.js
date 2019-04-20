@@ -1,3 +1,5 @@
+"use strict"
+
 const NS = 'org.example.ivsnetwork';
 const Debug_Key = "@Debug";
 const allAssets = ['Education', 'Record', 'VolunteerRecord', 'WorkExp'];
@@ -454,6 +456,34 @@ async function RevokeAccessAll(revoke) {
 }
 
 /**
+ * 
+ * @param {org.example.ivsnetwork.RequestAccessAsset} request
+ * @transaction 
+ */
+async function RequestAccessAsset(request) {
+  let factory = getFactory();
+
+  //sender
+  let me = getCurrentParticipant();
+  if (!me) throw new Error('A user not exist')
+
+  //create request asset and fill-up info
+  let newRequestId = UIDGenerator('r');
+  let rRegistry = await getAssetRegistry(`${NS}.Request`);
+
+  let requestAsset = factory.newResource(NS, 'Request', newRequestId);
+  requestAsset.senderId = me.getIdentifier();
+  requestAsset.receiverId = request.receiverId;
+  requestAsset.remarks = request.remarks;
+  requestAsset.requested = request.assetId;
+  requestAsset.status = 'UNDETERMINED'
+
+  //upload asset to network
+  await rRegistry.add(requestAsset);
+}
+
+
+/**
  * @param {org.example.ivsnetwork.CreateChannel} channel
  * @transaction
  */
@@ -608,3 +638,4 @@ async function CreateChannel(channel) {
   //update channel info
   await cRegistry.update(channel);
  }
+
