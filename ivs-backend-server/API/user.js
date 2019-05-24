@@ -4,8 +4,10 @@ import Helper from '../helper/helper.js';
 const AdminCard = "admin@ivs-network";
 const Network = new IvsNetwork(AdminCard);
 
+const expireTime = 60 * 60;
+const secret = 'secret';
 
-module.exports = function(app, NS) {
+module.exports = function(app, jwt, NS) {
   app.post('/api/logout', function(req, res) {
     var cardName = req.headers.authorization;
     var mynetwork = new MyNetwork(cardName);
@@ -20,20 +22,36 @@ module.exports = function(app, NS) {
 })
 
 
+  /**
+   * @param {userName, password}
+   */
   app.post('/api/login', async function (req, res) {
     try {
 
       const {
-        userId,
+        userName,
         password
       } = req.body;
 
+      let userId = await Helper.GetUserId(userName, password);
+      let userCard = await Helper.GetUserCard(userId);
+      if (!userCard) throw new Error('user name or password not correct');
 
-      let userCard = await Helper.GetUserCard(userId, password);
-      let userInfo = await userCard.connect();
+      //generate token
+      let payload = {
+        userId: userId
+      };
+
+      let accessToken = jwt.sign({
+        payload,
+        exp: Math.floor(Date.now() / 1000) + expireTime
+      }, secret);
 
       res.status(200).json({
-        result: 'login success'
+        result: {
+          message: 'login success',
+          accessToken: accessToken
+        }
       });
     }
     catch (error) {
@@ -48,10 +66,9 @@ module.exports = function(app, NS) {
   app.get('/api/getAccessRequestList', async function(req, res) {
     try {
 
-      const {
-        userId,
-        status
-      } = req.body;
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+      const {status} = req.body;
 
       //connect network with user card
       let userCard = await Helper.GetUserCard(userId);
@@ -89,7 +106,8 @@ module.exports = function(app, NS) {
 
     }
     catch (error) {
-      res.status(500).json({
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
         error: error.toString()
       });
     }
@@ -102,7 +120,8 @@ module.exports = function(app, NS) {
    */
   app.get('/api/getSentRequestList', async function(req, res) {
     try {
-      const {userId} = req.body;
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
 
       //connect network with user card
       let userCard = await Helper.GetUserCard(userId);
@@ -126,7 +145,8 @@ module.exports = function(app, NS) {
 
     }
     catch (error) {
-      res.status(500).json({
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
         error: error.toString()
       });
     }
@@ -138,9 +158,10 @@ module.exports = function(app, NS) {
   app.post('/api/requestAccessAsset', async function(req, res) {
     try {
 
+      const {authorization} = req.headers;
+      const {senderId} = Helper.GetTokenInfo(jwt, authorization, secret);
       //get request param
       const {
-        senderId,
         receiverId,
         assetName,
         assetId
@@ -206,7 +227,8 @@ module.exports = function(app, NS) {
 
     }
     catch (error) {
-      res.status(500).json({
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
         error: error.toString()
       });
     }
@@ -217,8 +239,9 @@ module.exports = function(app, NS) {
    */
   app.put('/api/updateRequestStatus', async function(req, res) {
     try {
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
       const {
-        userId,
         requestId,
         newStatus
       } = req.body;
@@ -245,11 +268,165 @@ module.exports = function(app, NS) {
 
     }
     catch (error) {
-      res.status(500).json({
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
         error: error.toString()
       });
     }
   })
 
+  /**
+   * @param {userId, channelName, members[]} req
+   */
+  app.post('/api/createChannel',  async function(req, res) {
+    try {
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+      const {
+        channelName,
+        members
+      } = req.body;
 
+      //connect network as user
+      let userCard = await Helper.GetUserCard(userId);
+      let definition = await userCard.connect();
+      let connection = userCard.getConnection();
+
+      //submit transaction
+      let factory = definition.getFactory();
+      let transaction = factory.newTransaction(NS, 'CreateChannel');
+      transaction.name = channelName;
+      transaction.members = members;
+
+      await connection.submitTransaction(transaction);
+
+      //dissconnect network
+      await userCard.disconnect();
+
+      res.status(200).json({
+        result: 'Create success'
+      });
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  })
+
+  /**
+   * @param {userId, channelId, newMembers[]} req
+   */
+  app.put('/api/inviteChannelMember', async function(req, res) {
+    try {
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+      const {
+        channelId,
+        newMembers
+      } = req.body;
+
+      //connect network as user
+      let userCard = await Helper.GetUserCard(userId);
+      let definition = await userCard.connect();
+      let connection = userCard.getConnection();
+
+      //submit UpdateRequestStatus as current user
+      let factory = definition.getFactory();
+      let transaction = factory.newTransaction(NS, 'InviteChannelMember');
+      transaction.channelId = channelId;
+      transaction.users = newMembers;
+
+      await connection.submitTransaction(transaction);
+
+      //disconnect network
+      await userCard.disconnect();
+
+      res.status(200).json({
+        result: 'Update success'
+      });
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  })
+
+  /**
+   * @param {userId, channelId, removeMebers[]} req
+   */
+  app.put('/api/removeChannelMember', async function(req, res) {
+    try {
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+      const {
+        channelId,
+        removeMebers
+      } = req.body;
+
+      //connect network as user
+      let userCard = await Helper.GetUserCard(userId);
+      let definition = await userCard.connect();
+      let connection = userCard.getConnection();
+
+      //submit UpdateRequestStatus as current user
+      let factory = definition.getFactory();
+      let transaction = factory.newTransaction(NS, 'RemoveChannelMember');
+      transaction.channelId = channelId;
+      transaction.users = removeMebers;
+
+      await connection.submitTransaction(transaction);
+
+      //disconnect network
+      await userCard.disconnect();
+
+      res.status(200).json({
+        result: 'Update success'
+      });
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  })
+
+  /**
+   * @param {userId} req
+   * return user belong channel
+   */
+  app.get('/api/getUserChannel', async function(req, res) {
+    try {
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+
+      //connect network as user
+      let userCard = await Helper.GetUserCard(userId);
+      let connection = userCard.getConnection();
+      await userCard.connect();
+
+      //get all channel list
+      let registry = await connection.getParticipantRegistry(`${NS}.Channel`)
+      let channelList = await registry.getAll();
+
+      //filter user belong channel
+      let filtered = channelList.filter(e => e.members.includes(userId));
+
+      //return filtered list
+      res.status(200).json({
+        result: filtered
+      });
+    }
+    
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  })
 };

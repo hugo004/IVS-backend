@@ -11,15 +11,20 @@ const Network = new IvsNetwork(CardName);
 const app = express();
 app.use(express.json());
 
+import cors from 'cors';
+app.use(cors());
+
+
 var server = app.listen(8081, function () {
   var host = server.address().address
   var port = server.address().port
   
   console.log("Example app listening at http://%s:%s", host, port)
 })
+const jwt = require('jsonwebtoken');
 
-require('./API/admin.js')(app, NS);
-require('./API/user.js')(app, NS);
+require('./API/admin.js')(app, jwt, NS);
+require('./API/user.js')(app, jwt, NS);
 
 
 //listene event emitted from network

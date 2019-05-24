@@ -3,9 +3,9 @@ import IvsNetwork from '../lib/ivsnetwork.js';
 
 const AdminCard = new IvsNetwork('admin@ivs-network');
 
-module.exports = function(app, NS) {
+module.exports = function(app, jwt, NS) {
 
-  app.post('/admin/createUser', async function(req, res) {
+  app.post('/api/admin/createUser', async function(req, res) {
     try{
       const {
         firstName,
@@ -52,7 +52,7 @@ module.exports = function(app, NS) {
   /**
    * this api call will reutrn all defined asset in the business network
    */
-  app.get('/admin/getAllRegistryAsset', async function(req, res) {
+  app.get('/api//admin/getAllRegistryAsset', async function(req, res) {
     try {
       //get all defined asset from the network
       await AdminCard.connect();
@@ -81,13 +81,12 @@ module.exports = function(app, NS) {
   /**
    * return all defined participant in network
    */
-  app.get('/admin/getAllRegistryParticipant', async function(req, res) {
+  app.get('/api/admin/getAllRegistryParticipant', async function(req, res) {
     try {
       //get defined participant from network
       await AdminCard.connect();
       const connection = AdminCard.getConnection();
       const allPaticipant = await connection.getAllParticipantRegistries();
-      connection.gettr
 
       //get participant name
       let allPaticipantName = [];
