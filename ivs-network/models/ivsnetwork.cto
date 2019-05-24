@@ -108,6 +108,7 @@ enum StatusType {
   o ACCEPT
   o DENY
   o UNDETERMINED
+  o ALL
 }
 
 concept RequestInfo {
@@ -139,6 +140,11 @@ transaction RequestAccessAsset extends RequestTransaction {
   o String [] assetId
 }
 
+
+transaction  UpdateRequestStatus {
+  o String requestId
+  o StatusType newStatus 
+}
 
 
 // CV records

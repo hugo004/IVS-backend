@@ -465,7 +465,7 @@ async function RequestAccessAsset(request) {
 
   //sender
   let me = getCurrentParticipant();
-  if (!me) throw new Error('A user not exist')
+  if (!me) throw new Error('A user not exist');
 
   //create request asset and fill-up info
   let newRequestId = UIDGenerator('r');
@@ -482,6 +482,28 @@ async function RequestAccessAsset(request) {
   await rRegistry.add(requestAsset);
 }
 
+
+
+/**
+ * 
+ * @param {org.example.ivsnetwork.UpdateRequestStatus} updated
+ * @transaction
+ */
+async function UpdateRequestStatus(updated) {
+
+  //update request to new status
+  let rRegistry = await getAssetRegistry(`${NS}.Request`);
+
+  let requestId = updated.requestId;
+  let request = await rRegistry.get(requestId);
+
+  if (!request) throw new Error ('Request not exist');
+
+  let newStatus = updated.newStatus;
+  request.status = newStatus;
+
+  await rRegistry.update(request);
+}
 
 /**
  * @param {org.example.ivsnetwork.CreateChannel} channel
