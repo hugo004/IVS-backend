@@ -157,7 +157,71 @@ module.exports = function(app, jwt, NS) {
   })
 
   /**
-   * @param {senderId, receiverId, assetId[], assetName} req
+ * @param {userId, requestId, assetName, authorizeList senderId, newStatus} req
+ */
+  app.put('/api/updateRequestStatus', async function(req, res) {
+    try {
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+      const {
+        requestId,
+        senderId,
+        newStatus,
+        assetName,
+        authorizeList
+      } = req.body;
+
+      //connect network as user
+      let userCard = await Helper.GetUserCard(userId);
+      let definition = await userCard.connect();
+      let connection = userCard.getConnection();
+
+      //submit UpdateRequestStatus as current user
+      let factory = definition.getFactory();
+      let transaction = factory.newTransaction(NS, 'UpdateRequestStatus');
+      transaction.requestId = requestId;
+      transaction.newStatus = newStatus;
+
+      await connection.submitTransaction(transaction);
+
+      //authroize user access asset, if status is ACCEPT
+      if (newStatus == 'ACCEPT') {
+        //authorize access user profile
+        if (assetName == 'User') {
+          transaction = factory.newTransaction(NS, 'AuthorizeAccessProfile');
+          transaction.userId = senderId;
+
+          await connection.submitTransaction(transaction);
+        }
+        //authorize access asset, authorize the asset list base the assetName
+        else {
+          transaction = factory.newTransaction(NS, 'AuthorizeAccessSpecifyRecord');
+          transaction.assetName = assetName;
+          transaction.userId = senderId;
+          transaction.assetId = authorizeList;
+
+          await connection.submitTransaction(transaction);
+        }
+      }
+
+      //disconnect network
+      await userCard.disconnect();
+
+      res.status(200).json({
+        result: 'Update success'
+      });
+
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  })
+
+  /**
+   * @param {senderId, receiverId, eventName, remarks (optional), assetId[], assetName} req
    */
   app.post('/api/requestAccessAsset', async function(req, res) {
     try {
@@ -168,7 +232,9 @@ module.exports = function(app, jwt, NS) {
       const {
         receiverId,
         assetName,
-        assetId
+        assetId,
+        eventName,
+        remarks
       } = req.body;
 
       //get sender info
@@ -220,6 +286,11 @@ module.exports = function(app, jwt, NS) {
       transaction.receiverId = receiverId;
       transaction.assetName = assetName;
       transaction.assetId = requestList;
+      transaction.eventName = eventName;
+
+      if (remarks) {
+        transaction.remarks = remarks;
+      }
 
       //submit request access asset transaction
       await connection.submitTransaction(transaction);
@@ -238,46 +309,7 @@ module.exports = function(app, jwt, NS) {
     }
   })
 
-  /**
-   * @param {userId, requestId, newStatus} req
-   */
-  app.put('/api/updateRequestStatus', async function(req, res) {
-    try {
-      const {authorization} = req.headers;
-      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
-      const {
-        requestId,
-        newStatus
-      } = req.body;
 
-      //connect network as user
-      let userCard = await Helper.GetUserCard(userId);
-      let definition = await userCard.connect();
-      let connection = userCard.getConnection();
-
-      //submit UpdateRequestStatus as current user
-      let factory = definition.getFactory();
-      let transaction = factory.newTransaction(NS, 'UpdateRequestStatus');
-      transaction.requestId = requestId;
-      transaction.newStatus = newStatus;
-
-      await connection.submitTransaction(transaction);
-
-      //disconnect network
-      await userCard.disconnect();
-
-      res.status(200).json({
-        result: 'Update success'
-      });
-
-    }
-    catch (error) {
-      let statusCode = Helper.ErrorCode(error);
-      res.status(statusCode).json({
-        error: error.toString()
-      });
-    }
-  })
 
 
 
