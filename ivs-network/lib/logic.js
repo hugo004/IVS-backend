@@ -474,8 +474,12 @@ async function RequestAccessAsset(request) {
   let requestAsset = factory.newResource(NS, 'Request', newRequestId);
   requestAsset.senderId = me.getIdentifier();
   requestAsset.receiverId = request.receiverId;
+  requestAsset.requestName = request.eventName;
+  requestAsset.receiverName = request.receiverName;
   requestAsset.remarks = request.remarks;
   requestAsset.requested = request.assetId;
+  requestAsset.createTime = request.timestamp;
+  requestAsset.assetName = request.assetName;
   requestAsset.status = 'UNDETERMINED'
 
   //upload asset to network
