@@ -1,4 +1,7 @@
 import IvsNetwork from '../lib/ivsnetwork.js';
+import Helper from '../helper/helper.js';
+import Config from '../config/config.js';
+
 
 
 const AdminCard = new IvsNetwork('admin@ivs-network');
@@ -106,5 +109,54 @@ module.exports = function(app, jwt, NS) {
       });
     }
   })
+
+    /**
+   * @param {userId, name, owner, members[]} req
+   */
+  app.post('/api/admin/createChannel',  async function(req, res) {
+    try {
+      const {authorization} = req.headers;
+      const {
+        userId,
+        userName
+      } = Helper.GetTokenInfo(jwt, authorization, Config.secret);
+
+      let {
+        name,
+        members
+      } = req.body;
+
+      //get defined participant from network
+      let definition = await AdminCard.connect();
+      let connection = AdminCard.getConnection();
+
+      //add owner id as part of channel member
+      members.push(userId);
+
+      //submit transaction
+      let factory = definition.getFactory();
+      let transaction = factory.newTransaction(NS, 'CreateChannel');
+      transaction.name = name;
+      transaction.members = members;
+      transaction.owner = userName;
+      transaction.ownerId = userId;
+
+      await connection.submitTransaction(transaction);
+
+      //dissconnect network
+      await AdminCard.disconnect();
+
+      res.status(200).json({
+        result: 'Create success'
+      });
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  })
+
 
 }

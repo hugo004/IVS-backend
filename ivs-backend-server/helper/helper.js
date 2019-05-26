@@ -33,10 +33,6 @@ module.exports = {
 
     return userCard;
   },
-  
-  getParticipantRegistry: async function(assetName) {
-
-  },
 
   GetUserId: async function (userName, pswd) {
     //conenct to admin networkd
@@ -57,6 +53,8 @@ module.exports = {
     let userInfo = await pRegistry.get(userId);
 
     // if (userInfo.password != pswd) throw new Error ('Password no correct');
+
+    await Network.disconnect();
 
     //return user id
     return userId;
@@ -91,5 +89,19 @@ module.exports = {
   }
 
     return statusCode;
+  },
+
+  GetUserInfo: async function(userId) {
+    //conenct to admin networkd
+    await Network.connect();
+    let connection = Network.getConnection();
+    let pRegistry = await connection.getParticipantRegistry(`${NS}.User`);
+
+    //check user is exit
+    let user = await pRegistry.get(userId);
+    if (!user) throw new Error('User not exit');
+
+    await Network.disconnect();
+    return user;
   }
 };

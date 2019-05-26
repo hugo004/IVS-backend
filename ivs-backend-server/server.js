@@ -14,6 +14,14 @@ app.use(express.json());
 import cors from 'cors';
 app.use(cors());
 
+// const EventEmitter = require('events')
+// EventEmitter.defaultMaxListeners = 10;
+
+// let emitter = new EventEmitter();`
+// emitter.setMaxListeners(20);
+
+require('events').EventEmitter.defaultMaxListeners = 30
+
 
 var server = app.listen(8081, function () {
   var host = server.address().address

@@ -37,9 +37,13 @@ module.exports = function(app, jwt, NS) {
       let userCard = await Helper.GetUserCard(userId);
       if (!userCard) throw new Error('user name or password not correct');
 
+      let userInfo = await Helper.GetUserInfo(userId);
+      let {firstName, lastName} = userInfo.baseInfo;
+
       //generate token
       let payload = {
-        userId: userId
+        userId: userId,
+        userName: `${lastName} ${firstName}`
       };
 
       let accessToken = jwt.sign({
@@ -275,45 +279,7 @@ module.exports = function(app, jwt, NS) {
     }
   })
 
-  /**
-   * @param {userId, channelName, members[]} req
-   */
-  app.post('/api/createChannel',  async function(req, res) {
-    try {
-      const {authorization} = req.headers;
-      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
-      const {
-        channelName,
-        members
-      } = req.body;
 
-      //connect network as user
-      let userCard = await Helper.GetUserCard(userId);
-      let definition = await userCard.connect();
-      let connection = userCard.getConnection();
-
-      //submit transaction
-      let factory = definition.getFactory();
-      let transaction = factory.newTransaction(NS, 'CreateChannel');
-      transaction.name = channelName;
-      transaction.members = members;
-
-      await connection.submitTransaction(transaction);
-
-      //dissconnect network
-      await userCard.disconnect();
-
-      res.status(200).json({
-        result: 'Create success'
-      });
-    }
-    catch (error) {
-      let statusCode = Helper.ErrorCode(error);
-      res.status(statusCode).json({
-        error: error.toString()
-      });
-    }
-  })
 
   /**
    * @param {userId, channelId, newMembers[]} req
@@ -416,9 +382,32 @@ module.exports = function(app, jwt, NS) {
       //filter user belong channel
       let filtered = channelList.filter(e => e.members.includes(userId));
 
+      //get channel's member info and replace member id with member object
+      let responseList = [];
+      registry = await connection.getParticipantRegistry(`${NS}.User`);
+
+      //no use es6 syntax, async call in es6 with loop would cause inccorect flow
+      for (let i=0; i<filtered.length; i++) {
+        let e = filtered[i];
+        let members = e.members || [];
+        let membersInfo = [];
+
+        for (let y=0; y<members.length; y++) {
+          let id = members[y];
+          let info = await Helper.GetUserInfo(id);
+          membersInfo.push(info);
+        }
+
+        //the channel's members property are store id, and cannnot change network object defition
+        //so this object list
+        responseList.push({
+          "channel": e,
+          "membersInfo": membersInfo
+        })
+      }
       //return filtered list
       res.status(200).json({
-        result: filtered
+        result: responseList
       });
     }
     
