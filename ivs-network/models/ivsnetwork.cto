@@ -32,11 +32,14 @@ participant Channel identified by channelId {
   o String channelId
   o String name
   o String owner
+  o String ownerId
   o DateTime createTime
   o String[] members optional
 }
 
 transaction CreateChannel {
+  o String owner
+  o String ownerId
   o String name
   o String[] members
 }

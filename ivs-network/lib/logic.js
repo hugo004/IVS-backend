@@ -520,7 +520,8 @@ async function CreateChannel(channel) {
   //create channel
   const newChannel = factory.newResource(NS, 'Channel', newChannelId);
   newChannel.name = channel.name;
-  newChannel.owner = me.getIdentifier();
+  newChannel.owner = channel.owner;
+  newChannel.ownerId = channel.ownerId;
   newChannel.createTime = channel.timestamp;
 
   const pRegistry = await getParticipantRegistry(`${NS}.User`);
