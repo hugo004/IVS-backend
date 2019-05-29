@@ -435,6 +435,8 @@ module.exports = function(app, jwt, NS) {
           "membersInfo": membersInfo
         })
       }
+      
+      await userCard.disconnect();
       //return filtered list
       res.status(200).json({
         result: responseList
