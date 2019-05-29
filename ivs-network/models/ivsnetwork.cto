@@ -114,24 +114,18 @@ enum StatusType {
   o ALL
 }
 
-concept RequestInfo {
-  o String senderId
-  o String receiverId
-  o StatusType status 
-  o String[] requested optional //should store the asset identifier no just id
-  o String remarks optional
-  o DateTime expireTime optional
-}
-
 asset Request identified by requestId {
   o String assetName
   o String requestName
-  o String receiverName
   o String requestId
-  o DateTime createTime
-  // o RequestInfo requestInfo
-  o String senderId
+
+  o String receiverName
   o String receiverId
+
+  o String senderId
+  o String senderName
+
+  o DateTime createTime
   o StatusType status default='UNDETERMINED'
   o String[] requested optional //should store the asset identifier no just id
   o String remarks optional
@@ -140,11 +134,11 @@ asset Request identified by requestId {
 
 abstract transaction RequestTransaction {
   o String receiverId
+  o String receiverName
+  o String eventName
 }
 
 transaction RequestAccessAsset extends RequestTransaction {
-  o String eventName
-  o String receiverName
   o String remarks optional
   o String assetName
   o String [] assetId

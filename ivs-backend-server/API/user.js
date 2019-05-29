@@ -72,7 +72,7 @@ module.exports = function(app, jwt, NS) {
 
       const {authorization} = req.headers;
       const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
-      const {status} = req.body;
+      const {status} = req.query;
 
       //connect network with user card
       let userCard = await Helper.GetUserCard(userId);
@@ -97,9 +97,10 @@ module.exports = function(app, jwt, NS) {
       let filtered = requestList.filter(e => e.receiverId == userId);
 
       //filter out the request list by status (UNDETERMINED / DENY / ACCEPT), default return all status
-      if (!filterStatus == 'ALL') {
+      if (!(filterStatus == 'ALL')) {
         filtered = filtered.filter(e => e.status == filterStatus);
       }
+      
       
       await userCard.disconnect();
 
@@ -310,9 +311,6 @@ module.exports = function(app, jwt, NS) {
   })
 
 
-
-
-
   /**
    * @param {userId, channelId, newMembers[]} req
    */
@@ -450,4 +448,5 @@ module.exports = function(app, jwt, NS) {
       });
     }
   })
+
 };

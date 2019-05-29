@@ -467,15 +467,21 @@ async function RequestAccessAsset(request) {
   let me = getCurrentParticipant();
   if (!me) throw new Error('A user not exist');
 
+  const {firstName, lastName} = me.baseInfo;
+  let myName = `${lastName} ${firstName}`; 
+
   //create request asset and fill-up info
   let newRequestId = UIDGenerator('r');
   let rRegistry = await getAssetRegistry(`${NS}.Request`);
 
   let requestAsset = factory.newResource(NS, 'Request', newRequestId);
   requestAsset.senderId = me.getIdentifier();
+  requestAsset.senderName = myName;
+
   requestAsset.receiverId = request.receiverId;
-  requestAsset.requestName = request.eventName;
   requestAsset.receiverName = request.receiverName;
+
+  requestAsset.requestName = request.eventName;
   requestAsset.remarks = request.remarks;
   requestAsset.requested = request.assetId;
   requestAsset.createTime = request.timestamp;

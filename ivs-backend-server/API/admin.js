@@ -55,7 +55,7 @@ module.exports = function(app, jwt, NS) {
   /**
    * this api call will reutrn all defined asset in the business network
    */
-  app.get('/api//admin/getAllRegistryAsset', async function(req, res) {
+  app.get('/api/admin/getAllRegistryAsset', async function(req, res) {
     try {
       //get all defined asset from the network
       await AdminCard.connect();
@@ -67,6 +67,8 @@ module.exports = function(app, jwt, NS) {
       allAsset.forEach(element => {
           allAssetName.push(element.id);
       });
+
+      await AdminCard.disconnect();
 
       //return the result
       res.status(200).json({
@@ -96,6 +98,8 @@ module.exports = function(app, jwt, NS) {
         allPaticipant.forEach(e => {
           allPaticipantName.push(e.id);
         });
+
+      await AdminCard.disconnect();
 
       //return the result
       res.status(200).json({
