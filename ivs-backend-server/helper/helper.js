@@ -30,6 +30,8 @@ module.exports = {
     //switch to user profile from admin, create asset or submit transaction as user ID
     let identity = filtered[0];
     let userCard = new IvsNetwork(`${identity.name}@ivs-network`);
+    await userCard.connect();
+    console.log('user card found', userCard);
 
     return userCard;
   },

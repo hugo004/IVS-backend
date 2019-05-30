@@ -76,8 +76,10 @@ module.exports = function(app, jwt, NS) {
 
       //connect network with user card
       let userCard = await Helper.GetUserCard(userId);
-      let connection = userCard.getConnection();
+
       await userCard.connect();
+      let connection = userCard.getConnection();
+
 
       //check new status is within status type
       let statusTypes = ['UNDETERMINED', 'ACCEPT', 'DENY'];
@@ -130,8 +132,9 @@ module.exports = function(app, jwt, NS) {
 
       //connect network with user card
       let userCard = await Helper.GetUserCard(userId);
-      let connection = userCard.getConnection();
+
       await userCard.connect();
+      let connection = userCard.getConnection();
 
       //get sent request
       let rRegistry = await connection.getAssetRegistry(`${NS}.Request`);
@@ -402,8 +405,9 @@ module.exports = function(app, jwt, NS) {
 
       //connect network as user
       let userCard = await Helper.GetUserCard(userId);
-      let connection = userCard.getConnection();
+
       await userCard.connect();
+      let connection = userCard.getConnection();
 
       //get all channel list
       let registry = await connection.getParticipantRegistry(`${NS}.Channel`)
