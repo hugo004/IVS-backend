@@ -17,10 +17,12 @@ app.use(cors());
 // const EventEmitter = require('events')
 // EventEmitter.defaultMaxListeners = 10;
 
-// let emitter = new EventEmitter();`
-// emitter.setMaxListeners(20);
+// let emitter = new EventEmitter();
+// emitter.setMaxListeners(100);
 
-require('events').EventEmitter.defaultMaxListeners = 30
+
+
+require('events').EventEmitter.defaultMaxListeners = 100;
 
 
 

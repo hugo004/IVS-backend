@@ -7,18 +7,33 @@ const Network = new IvsNetwork(AdminCard);
 const expireTime = 60 * 60;
 const secret = 'secret';
 
+const userCardPool = new Map();
+
 module.exports = function(app, jwt, NS) {
-  app.post('/api/logout', function(req, res) {
-    var cardName = req.headers.authorization;
-    var mynetwork = new MyNetwork(cardName);
-    mynetwork.init().then(function () {
-        return mynetwork.logout()
-    }).then(function () { 
-        res.json({ message: "User added Successfully" });
-    }).catch(function(error) {
-        console.log(error);
-        res.status(500).json({ error: error.toString() })
-    })
+  app.post('/api/logout', async function(req, res) {
+
+    try {
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
+
+      await userCard.disconnect();
+
+      //remove user card from pool
+      userCardPool.delete(userId);
+
+      res.status(200).end();
+
+    }
+    catch (error) {
+      res.status(401).json({error: error.toString()});
+    }
 })
 
 
@@ -51,6 +66,11 @@ module.exports = function(app, jwt, NS) {
         exp: Math.floor(Date.now() / 1000) + expireTime
       }, secret);
 
+
+      //connect the network when user login and put logined user card into pool
+      await userCard.connect();
+      userCardPool.set(userId, userCard);
+
       res.status(200).json({
         result: {
           message: 'login success',
@@ -74,10 +94,13 @@ module.exports = function(app, jwt, NS) {
       const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
       const {status} = req.query;
 
-      //connect network with user card
-      let userCard = await Helper.GetUserCard(userId);
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
 
-      await userCard.connect();
       let connection = userCard.getConnection();
 
 
@@ -102,9 +125,6 @@ module.exports = function(app, jwt, NS) {
       if (!(filterStatus == 'ALL')) {
         filtered = filtered.filter(e => e.status == filterStatus);
       }
-      
-      
-      await userCard.disconnect();
 
       //return my request list
       res.status(200).json({
@@ -130,10 +150,13 @@ module.exports = function(app, jwt, NS) {
       const {authorization} = req.headers;
       const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
 
-      //connect network with user card
-      let userCard = await Helper.GetUserCard(userId);
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
 
-      await userCard.connect();
       let connection = userCard.getConnection();
 
       //get sent request
@@ -145,7 +168,6 @@ module.exports = function(app, jwt, NS) {
       //filter out the request list if receiver is me
       let filtered = requestList.filter(e => e.senderId == userId);
       
-      await userCard.disconnect();
 
       res.status(200).json({
         result: filtered
@@ -176,8 +198,14 @@ module.exports = function(app, jwt, NS) {
       } = req.body;
 
       //connect network as user
-      let userCard = await Helper.GetUserCard(userId);
-      let definition = await userCard.connect();
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
+      
+      let definition = userCard.getDefinition();
       let connection = userCard.getConnection();
 
       //submit UpdateRequestStatus as current user
@@ -207,9 +235,6 @@ module.exports = function(app, jwt, NS) {
           await connection.submitTransaction(transaction);
         }
       }
-
-      //disconnect network
-      await userCard.disconnect();
 
       res.status(200).json({
         result: 'Update success'
@@ -327,8 +352,14 @@ module.exports = function(app, jwt, NS) {
       } = req.body;
 
       //connect network as user
-      let userCard = await Helper.GetUserCard(userId);
-      let definition = await userCard.connect();
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
+      
+      let definition = userCard.getDefinition();
       let connection = userCard.getConnection();
 
       //submit UpdateRequestStatus as current user
@@ -338,9 +369,6 @@ module.exports = function(app, jwt, NS) {
       transaction.users = newMembers;
 
       await connection.submitTransaction(transaction);
-
-      //disconnect network
-      await userCard.disconnect();
 
       res.status(200).json({
         result: 'Update success'
@@ -367,8 +395,14 @@ module.exports = function(app, jwt, NS) {
       } = req.body;
 
       //connect network as user
-      let userCard = await Helper.GetUserCard(userId);
-      let definition = await userCard.connect();
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
+      
+      let definition = userCard.getDefinition();
       let connection = userCard.getConnection();
 
       //submit UpdateRequestStatus as current user
@@ -379,8 +413,6 @@ module.exports = function(app, jwt, NS) {
 
       await connection.submitTransaction(transaction);
 
-      //disconnect network
-      await userCard.disconnect();
 
       res.status(200).json({
         result: 'Update success'
@@ -403,10 +435,14 @@ module.exports = function(app, jwt, NS) {
       const {authorization} = req.headers;
       const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
 
-      //connect network as user
-      let userCard = await Helper.GetUserCard(userId);
-
-      await userCard.connect();
+      // await userCard.connect();
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
+      
       let connection = userCard.getConnection();
 
       //get all channel list
@@ -440,13 +476,55 @@ module.exports = function(app, jwt, NS) {
         })
       }
       
-      await userCard.disconnect();
       //return filtered list
       res.status(200).json({
         result: responseList
       });
     }
     
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  })
+
+
+  /**
+   * @param {userId, assetName, assetIds} req
+   */
+  app.get('/api/getAsset', async function(req, res) {
+    try {
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+      const {assetName, assetIds} = req.query;
+
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
+      
+      let connection = userCard.getConnection();
+
+      //get asset name
+      let registry = await connection.getAssetRegistry(`${NS}.${assetName}`);
+      let assets = [];
+
+      //get asset by id
+      for (let i=0; i<assetIds.length; i++) {
+        let id = assetIds[i];
+        let asset = await registry.get(id);
+        assets.push(asset);
+      }
+
+      res.status(200).json({
+        result: assets
+      });
+
+    }
     catch (error) {
       let statusCode = Helper.ErrorCode(error);
       res.status(statusCode).json({

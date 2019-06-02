@@ -18,6 +18,9 @@ class IvsNetwork {
     return this.connection;
   }
 
+  getDefinition() {
+    return this.businessNetworkDefinition;
+  }
 
   connect() {
     var _this = this;
