@@ -12,6 +12,7 @@ class IvsNetwork {
     this.currentParticipantId;
     this.cardName = cardName;
     this.connection = new BusinessNetworkConnection();
+    this.businessNetworkDefinition = null;
   }
 
   getConnection() {

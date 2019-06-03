@@ -256,25 +256,28 @@ module.exports = function(app, jwt, NS) {
     try {
 
       const {authorization} = req.headers;
-      const {senderId} = Helper.GetTokenInfo(jwt, authorization, secret);
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
       //get request param
       const {
         receiverId,
+        receiverName,
         assetName,
         assetId,
         eventName,
         remarks
       } = req.body;
 
-      //get sender info
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
+
+      //check receiver is have asset, use network admin check
       await Network.connect();
 
       let connection = Network.getConnection();
-      let pRegistry = await connection.getParticipantRegistry(`${NS}.User`);
-
-      //check sender and receiver exist
-      // let sender = await pRegistry.get(senderId);
-      let receiver = await pRegistry.get(receiverId);
 
       //check requested asset exist
       let aRegistry = await connection.getAssetRegistry(`${NS}.${assetName}`);
@@ -291,31 +294,21 @@ module.exports = function(app, jwt, NS) {
         requestList.push(id);
       };
 
-      
-      //get sender's issued network id card 
-      let iRegistry = await connection.getIdentityRegistry();
-      let identities = await iRegistry.getAll();
-      let filtered = identities.filter(identity => senderId == identity.participant.getIdentifier());
-      
-      if (filtered.length < 1) throw Error ('Sender not ID card');
-      
       await Network.disconnect();
 
-      //switch to sender profile from admin, create asset or submit transaction as sender ID
-      let senderIdentity = filtered[0];
-      let senderCard = new IvsNetwork(`${senderIdentity.name}@ivs-network`);
 
-      let definition = await senderCard.connect();
-      connection = senderCard.getConnection();
+      // submit transaction as user
+      let definition = userCard.getDefinition();
+      connection = userCard.getConnection();
 
       //new transaction
       let factory = definition.getFactory();
       let transaction = factory.newTransaction(NS, 'RequestAccessAsset');
-      // transaction.senderId = senderId;
       transaction.receiverId = receiverId;
+      transaction.receiverName = receiverName;
       transaction.assetName = assetName;
       transaction.assetId = requestList;
-      transaction.eventName = eventName;
+      transaction.eventName = eventName;  
 
       if (remarks) {
         transaction.remarks = remarks;
@@ -323,7 +316,6 @@ module.exports = function(app, jwt, NS) {
 
       //submit request access asset transaction
       await connection.submitTransaction(transaction);
-      await senderCard.disconnect();
     
       res.status(200).json({
         result: 'Reqeust sent'
