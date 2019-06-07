@@ -33,9 +33,11 @@ var server = app.listen(8081, function () {
   console.log("Example app listening at http://%s:%s", host, port)
 })
 const jwt = require('jsonwebtoken');
+const userCardPool = new Map();
 
-require('./API/admin.js')(app, jwt, NS);
-require('./API/user.js')(app, jwt, NS);
+
+require('./API/admin.js')(app, jwt, NS, userCardPool);
+require('./API/user.js')(app, jwt, NS, userCardPool);
 
 
 //listene event emitted from network

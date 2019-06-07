@@ -7,9 +7,9 @@ const Network = new IvsNetwork(AdminCard);
 const expireTime = 60 * 60;
 const secret = 'secret';
 
-const userCardPool = new Map();
+// const userCardPool = new Map();
 
-module.exports = function(app, jwt, NS) {
+module.exports = function(app, jwt, NS, userCardPool) {
   app.post('/api/logout', async function(req, res) {
 
     try {
@@ -74,7 +74,8 @@ module.exports = function(app, jwt, NS) {
       res.status(200).json({
         result: {
           message: 'login success',
-          accessToken: accessToken
+          accessToken: accessToken,
+          userInfo: JSON.stringify(userInfo)
         }
       });
     }
@@ -505,12 +506,18 @@ module.exports = function(app, jwt, NS) {
       let registry = await connection.getAssetRegistry(`${NS}.${assetName}`);
       let assets = [];
 
-      //get asset by id
-      for (let i=0; i<assetIds.length; i++) {
-        let id = assetIds[i];
-        let asset = await registry.get(id);
-        assets.push(asset);
+      //if assetIds is empty get all asset with this asset name
+      if (assetIds == undefined || assetIds.length == 0) {
+        assets = await registry.getAll();
       }
+      else {
+        //get asset by id
+        for (let i=0; i<assetIds.length; i++) {
+          let id = assetIds[i];
+          let asset = await registry.get(id);
+          assets.push(asset);
+        }
+    }
 
       res.status(200).json({
         result: assets
