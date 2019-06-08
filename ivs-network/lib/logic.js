@@ -486,7 +486,8 @@ async function RequestAccessAsset(request) {
   requestAsset.requested = request.assetId;
   requestAsset.createTime = request.timestamp;
   requestAsset.assetName = request.assetName;
-  requestAsset.status = 'UNDETERMINED'
+  requestAsset.status = 'UNDETERMINED';
+  requestAsset.requestType = 'ASSET';
 
   //upload asset to network
   await rRegistry.add(requestAsset);

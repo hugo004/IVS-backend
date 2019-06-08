@@ -1,11 +1,12 @@
 import IvsNetwork from '../lib/ivsnetwork.js';
 import Helper from '../helper/helper.js';
+import Config from '../config/config.js';
 
 const AdminCard = "admin@ivs-network";
 const Network = new IvsNetwork(AdminCard);
 
 const expireTime = 60 * 60;
-const secret = 'secret';
+const secret = Config.secret;
 
 // const userCardPool = new Map();
 
@@ -331,93 +332,6 @@ module.exports = function(app, jwt, NS, userCardPool) {
     }
   })
 
-
-  /**
-   * @param {userId, channelId, newMembers[]} req
-   */
-  app.put('/api/inviteChannelMember', async function(req, res) {
-    try {
-      const {authorization} = req.headers;
-      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
-      const {
-        channelId,
-        newMembers
-      } = req.body;
-
-      //connect network as user
-      let userCard = userCardPool.get(userId);
-      if (!userCard) {
-        res.status(401).json({
-          error: 'user card not found, please login again'
-        });
-      }
-      
-      let definition = userCard.getDefinition();
-      let connection = userCard.getConnection();
-
-      //submit UpdateRequestStatus as current user
-      let factory = definition.getFactory();
-      let transaction = factory.newTransaction(NS, 'InviteChannelMember');
-      transaction.channelId = channelId;
-      transaction.users = newMembers;
-
-      await connection.submitTransaction(transaction);
-
-      res.status(200).json({
-        result: 'Update success'
-      });
-    }
-    catch (error) {
-      let statusCode = Helper.ErrorCode(error);
-      res.status(statusCode).json({
-        error: error.toString()
-      });
-    }
-  })
-
-  /**
-   * @param {userId, channelId, removeMebers[]} req
-   */
-  app.put('/api/removeChannelMember', async function(req, res) {
-    try {
-      const {authorization} = req.headers;
-      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
-      const {
-        channelId,
-        removeMebers
-      } = req.body;
-
-      //connect network as user
-      let userCard = userCardPool.get(userId);
-      if (!userCard) {
-        res.status(401).json({
-          error: 'user card not found, please login again'
-        });
-      }
-      
-      let definition = userCard.getDefinition();
-      let connection = userCard.getConnection();
-
-      //submit UpdateRequestStatus as current user
-      let factory = definition.getFactory();
-      let transaction = factory.newTransaction(NS, 'RemoveChannelMember');
-      transaction.channelId = channelId;
-      transaction.users = removeMebers;
-
-      await connection.submitTransaction(transaction);
-
-
-      res.status(200).json({
-        result: 'Update success'
-      });
-    }
-    catch (error) {
-      let statusCode = Helper.ErrorCode(error);
-      res.status(statusCode).json({
-        error: error.toString()
-      });
-    }
-  })
 
   /**
    * @param {userId} req

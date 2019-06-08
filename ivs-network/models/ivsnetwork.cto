@@ -114,6 +114,11 @@ enum StatusType {
   o ALL
 }
 
+enum RequestType {
+  o ASSET
+  o CHANNEL
+}
+
 asset Request identified by requestId {
   o String assetName
   o String requestName
@@ -127,6 +132,7 @@ asset Request identified by requestId {
 
   o DateTime createTime
   o StatusType status default='UNDETERMINED'
+  o RequestType requestType default='ASSET'
   o String[] requested optional //should store the asset identifier no just id
   o String remarks optional
   o DateTime expireTime optional
