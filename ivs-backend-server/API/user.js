@@ -332,6 +332,61 @@ module.exports = function(app, jwt, NS, userCardPool) {
     }
   })
 
+  /**
+   * @param {userId, requestId, revokeUser, assetName, assetIds[]} req
+   */
+  app.post('/api/revokeAccessAsset', async function(req, res) {
+    try {
+      console.log('RevokeAccessAsset api start');
+      
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+      const {
+        assetName,
+        assetIds,
+        revokeUser,
+        requestId
+      } = req.body;
+
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
+
+      let definition = userCard.getDefinition();
+      let connection = userCard.getConnection();
+
+      //fire transaction
+      let factory = definition.getFactory();
+      let transaction = factory.newTransaction(NS, 'RevokeAccessSpecifyRecord');
+      transaction.assetName = assetName;
+      transaction.assetId = assetIds;
+      transaction.userId = revokeUser;
+
+      await connection.submitTransaction(transaction);
+
+     //update the reuqest status from accepted to revoked
+      let registry = await connection.getAssetRegistry(`${NS}.Request`);
+      let request = await registry.get(requestId);
+      request.status = 'REVOKED';
+      await registry.update(request);
+
+
+      res.status(200).json({
+        result: 'Asset revoked'
+      });
+
+      console.log('RevokeAccessAsset api finish');
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  })
 
   /**
    * @param {userId} req
@@ -409,7 +464,6 @@ module.exports = function(app, jwt, NS, userCardPool) {
       const {authorization} = req.headers;
       const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
       let {assetName, assetIds} = req.query;
-      console.log(req.query)
 
       //if string type mean no array, convert to array
       if (typeof assetIds == 'string') {

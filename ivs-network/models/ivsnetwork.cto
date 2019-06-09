@@ -111,6 +111,7 @@ enum StatusType {
   o ACCEPT
   o DENY
   o UNDETERMINED
+  o REVOKED
   o ALL
 }
 
