@@ -403,9 +403,18 @@ module.exports = function(app, jwt, NS, userCardPool) {
    */
   app.get('/api/getAsset', async function(req, res) {
     try {
+
+      console.log('getAsset api start');
+      
       const {authorization} = req.headers;
       const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
-      const {assetName, assetIds} = req.query;
+      let {assetName, assetIds} = req.query;
+      console.log(req.query)
+
+      //if string type mean no array, convert to array
+      if (typeof assetIds == 'string') {
+        assetIds = [assetIds];
+      }
 
       let userCard = userCardPool.get(userId);
       if (!userCard) {
@@ -436,6 +445,8 @@ module.exports = function(app, jwt, NS, userCardPool) {
       res.status(200).json({
         result: assets
       });
+
+      console.log('get asset api finish');
 
     }
     catch (error) {
