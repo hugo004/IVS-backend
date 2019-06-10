@@ -197,8 +197,18 @@ transaction CreateWorkExp {
   o WorkExpInfo info
 }
 
+concept VolunteerRecordInfo extends DateRange {
+  o String taskDescription
+  o String organization
+  o Integer hoursWorked
+}
+
 asset VolunteerRecord extends BaseAsset {
-  o String info
+  o VolunteerRecordInfo info
+}
+
+transaction CreateVolunteerRecord {
+  o VolunteerRecordInfo info
 }
 
 asset Record extends BaseAsset {

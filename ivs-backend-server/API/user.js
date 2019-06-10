@@ -511,4 +511,91 @@ module.exports = function(app, jwt, NS, userCardPool) {
     }
   })
 
+  /**
+   * @param {userId, educations[], workExps[], volunteerRecords[]}
+   */
+  app.post('/api/uploadRecord', async function(req, res) {
+    try {
+      console.log('uploadRecord api start');
+
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
+
+      const {educations, workExps, volunteerRecords} = req.body;
+
+      let definition = userCard.getDefinition();
+      let connection = userCard.getConnection();
+      let factory = definition.getFactory();
+
+      //create education record
+      for (let i=0; i<educations.length; i++) {
+        let education = educations[i];
+        const {school, major, from, to} = education;
+        
+        let eduInfo = factory.newConcept(NS, 'EducationInfo');
+        eduInfo.school = school;
+        eduInfo.major = major;
+        eduInfo.from = new Date(from),
+        eduInfo.to = new Date(to);
+
+        let eduTransction = factory.newTransaction(NS, 'CreateEducation');
+        eduTransction.info = eduInfo;
+        await connection.submitTransaction(eduTransction);
+      }
+
+      //create workExp record
+      for (let i=0; i<workExps.length; i++) {
+        let workExp = workExps[i];
+        const {company, jobTitle, jobDuty, from, to} = workExp;
+
+        let workExpInfo = factory.newConcept(NS,  'WorkExpInfo');
+        workExpInfo.company = company;
+        workExpInfo.jobTitle = jobTitle;
+        workExpInfo.jobDuty = jobDuty;
+        workExpInfo.from = new Date(from);
+        workExpInfo.to = new Date(to);
+
+        let workExpTransaction = factory.newTransaction(NS, 'CreateWorkExp');
+        workExpTransaction.info = workExpInfo;
+        await connection.submitTransaction(workExpTransaction);
+      }
+
+      //create volunteer record
+      for (let i=0; i<volunteerRecords.length; i++) {
+        let volunteerRecord = volunteerRecords[i];
+        const {taskDescription, organization, hoursWorked, date} = volunteerRecord;
+
+        let volunteerInfo = factory.newConcept(NS, 'VolunteerRecordInfo');
+        volunteerInfo.organization = organization;
+        volunteerInfo.taskDescription = taskDescription;
+        volunteerInfo.hoursWorked = Number(hoursWorked);
+        volunteerInfo.from = new Date(date);
+        volunteerInfo.to = new Date(date);
+
+        let volunteerRecordTransaction = factory.newTransaction(NS, 'CreateVolunteerRecord');
+        volunteerRecordTransaction.info = volunteerInfo;
+        await connection.submitTransaction(volunteerRecordTransaction);
+      }
+
+      res.status(200).json({
+        result: 'created'
+      });
+
+      console.log('uploadRecord api finish');
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  })
+
 };
