@@ -104,7 +104,7 @@ rule AllowAuthorizedUserAccess {
 rule SenderAndReceiverCanAccessRequest {
   description: "The request sender and receiver can access request record"
   participant(p): "org.example.ivsnetwork.User"
-  operation: READ
+  operation: READ, UPDATE
   resource(r): "org.example.ivsnetwork.Request"
   condition: (r.senderId == p.getIdentifier() || r.receiverId == p.getIdentifier())
   action: ALLOW

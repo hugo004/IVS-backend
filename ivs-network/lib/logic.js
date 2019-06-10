@@ -99,6 +99,29 @@ async function AddWorkExp(factory, data) {
   return newExp;
 }
 
+
+/**
+ * 
+ * @param {org.example.ivsnetwork.CreateVolunteerRecord} record 
+ * @transaction
+ */
+async function CreateVolunteerRecord(record) {
+  let newId = UIDGenerator('v');
+
+  let factory = getFactory();
+  let newRecord = factory.newResource(NS, 'VolunteerRecord', newId);
+  newRecord.info = record.info;
+
+  //get current user, and the record own by current user
+  let currentUser = getCurrentParticipant();
+  newRecord.owner = factory.newRelationship(NS, 'User', currentUser.getIdentifier());
+
+  let assetRegistry = await getAssetRegistry(`${NS}.VolunteerRecord`);
+  await assetRegistry.add(newRecord);
+
+
+}
+
 /**
  * @param {org.example.ivsnetwork.CreateRecord} record - the trade to be processed
  * @transaction
