@@ -4,11 +4,12 @@ namespace org.example.ivsnetwork
 
 // system users
 concept BaseInfo {
+  o String userName
+  o String password
   o String firstName
   o String lastName
-  o String phone
   o String email
-  o String location optional
+  o String phone optional
 }
 
 abstract participant BaseUser identified by userId {
@@ -16,10 +17,14 @@ abstract participant BaseUser identified by userId {
   o BaseInfo baseInfo
   o String[] authorized optional
   o String[] channels optional
+  o String[] educations optional
+  o String[] workExps optional
+  o String[] volunteerRecord optional
 
 }
 
 participant User extends BaseUser {
+
 }
 
 transaction CreateUser {
@@ -187,6 +192,7 @@ concept WorkExpInfo extends DateRange {
   o String company
   o String jobTitle
   o String jobDuty
+  o String skills optional
 }
 
 asset WorkExp extends BaseAsset {

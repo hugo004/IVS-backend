@@ -1,6 +1,8 @@
 import IvsNetwork from '../lib/ivsnetwork.js';
 import Helper from '../helper/helper.js';
 import Config from '../config/config.js';
+import { AdminConnection } from 'composer-admin';
+import { IdCard, BusinessNetworkCardStore } from 'composer-common';
 
 const secret = Config.secret;
 
@@ -482,5 +484,89 @@ module.exports = function(app, jwt, NS, userCardPool) {
       });
     }
   })
+
+
+  app.post('/api/admin/userRegistration', async function(req, res) {
+    try {
+  
+      console.log('userRegistration api start');
+  
+      const {
+        userName,
+        password,
+        firstName,
+        lastName,
+        email,
+        phone
+      } = req.body;
+
+      //import the user id card to network wallet
+      let adminConnection = new AdminConnection();
+      await adminConnection.connect('admin@ivs-network');
+      
+      //check username has been taken
+      let hasCard = await adminConnection.hasCard(`${userName}@ivs-network`);
+
+      //stop process if user has been taken
+      if (hasCard) throw new Error('username already exist');
+  
+      await AdminCard.connect();
+      let connection = AdminCard.getConnection();
+      let definition = AdminCard.getDefinition();
+      let factory = definition.getFactory();
+
+  
+      //create user
+      let userInfo = factory.newConcept(NS, 'BaseInfo');
+      userInfo.userName = userName;
+      userInfo.password = password;
+      userInfo.firstName = firstName;
+      userInfo.lastName = lastName;
+      userInfo.email = email;
+      userInfo.phone = phone;
+
+      let newId = UIDGenerator('u');
+      let user = factory.newResource(NS, 'User', newId);
+      user.baseInfo = userInfo;
+
+      let registry = await connection.getParticipantRegistry(`${NS}.User`);
+      await registry.add(user);
+  
+      
+      //issue ID card for the new user
+      let result = await connection.issueIdentity(`${NS}.User#${newId}`, userName);
+      const connectionProfile = Config.connectionProfile;
+      const metadata = {
+        "version": 1,
+        "userName": userName,
+        "description": `${userName}'s identity card for ivs-network`,
+        "businessNetwork": "ivs-network",
+        "enrollmentSecret": result.userSecret,
+        "roles": [
+        ]
+      }
+      
+      //import the user id card to network wallet
+      const card = new IdCard(metadata, connectionProfile);
+      const cardName = BusinessNetworkCardStore.getDefaultCardName(card);
+
+      await adminConnection.importCard(cardName, card);
+      await adminConnection.disconnect();
+      
+      await AdminCard.disconnect();
+  
+      res.status(200).json({
+        result: 'registration success'
+      });
+  
+      console.log('userRegistration api finish');
+    }
+    catch (error) {
+      res.status(500).json({
+        error: error.toString()
+      });
+    }
+  })
+
 
 }
