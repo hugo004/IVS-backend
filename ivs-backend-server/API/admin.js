@@ -486,6 +486,9 @@ module.exports = function(app, jwt, NS, userCardPool) {
   })
 
 
+  /**
+   * @param {userName, password, firstName, lastName, email, phone} req
+   */
   app.post('/api/admin/userRegistration', async function(req, res) {
     try {
   

@@ -52,7 +52,8 @@ module.exports = {
     let pRegistry = await connection.getParticipantRegistry(`${NS}.User`);
     let userInfo = await pRegistry.get(userId);
 
-    // if (userInfo.password != pswd) throw new Error ('Password no correct');
+    const {password} = userInfo.baseInfo;
+    if (password != pswd) throw new Error ('Password no correct');
 
     await Network.disconnect();
 
