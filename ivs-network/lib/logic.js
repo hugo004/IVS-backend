@@ -52,7 +52,27 @@ async function AddUser(factory, data) {
 async function CreateEducation(education) {
 
   let factory = getFactory();
-  AddEducation(factory, education.info);
+
+  let newId = UIDGenerator('e');
+
+  let newEducation = factory.newResource(NS, 'Education', newId);
+  newEducation.info = education.info;
+
+  //get current user, and the record own by current user
+  let currentUser = getCurrentParticipant();
+  newEducation.owner = factory.newRelationship(NS, 'User', currentUser.getIdentifier());
+
+  let assetRegistry = await getAssetRegistry(`${NS}.Education`);
+  await assetRegistry.add(newEducation);
+
+  //update education list
+  let pRegistry = await getParticipantRegistry(`${NS}.User`);
+  let educations = currentUser.educations || [];
+
+  educations.push(newId);
+  currentUser.educations = educations;
+
+  await pRegistry.update(currentUser);
 }
 
 async function AddEducation(factory, data) {
@@ -68,6 +88,15 @@ async function AddEducation(factory, data) {
   let assetRegistry = await getAssetRegistry(`${NS}.Education`);
   await assetRegistry.add(newEducation);
 
+  //update education list
+  let pRegistry = getParticipantRegistry(`${NS}.User`);
+  let educations = currentUser.educations || [];
+
+  educations.push(newId);
+  currentUser.educations = educations;
+
+  await pRegistry.update(currentUser);
+
   return newEducation;
 }
 
@@ -78,8 +107,27 @@ async function AddEducation(factory, data) {
 async function CreateWorkExp(workExp) {
 
   let factory = getFactory();
-  AddWorkExp(factory, workExp.info);
 
+  let newId = UIDGenerator('c');
+  let newExp = factory.newResource(NS, 'WorkExp', newId);
+  newExp.info = workExp.info;
+
+  //get current user, and the record own by current user
+  let currentUser = getCurrentParticipant();
+  newExp.owner = factory.newRelationship(NS, 'User', currentUser.getIdentifier());
+
+
+  let assetRegistry = await getAssetRegistry(`${NS}.WorkExp`);
+  await assetRegistry.add(newExp);
+
+  //update the workExp list
+  let pRegistry = await getParticipantRegistry(`${NS}.User`);
+  let workExps = currentUser.workExps || [];
+
+  workExps.push(newId);
+  currentUser.workExps = workExps;
+
+  await pRegistry.update(currentUser);
 }
 
 async function AddWorkExp(factory, data) {
@@ -95,6 +143,15 @@ async function AddWorkExp(factory, data) {
 
   let assetRegistry = await getAssetRegistry(`${NS}.WorkExp`);
   await assetRegistry.add(newExp);
+
+  //update the workExp list
+  let pRegistry = getParticipantRegistry(`${NS}.User`);
+  let workExps = currentUser.workExps || [];
+
+  workExps.push(newId);
+  currentUser.workExps = workExps;
+
+  await pRegistry.update(currentUser);
 
   return newExp;
 }
@@ -119,6 +176,14 @@ async function CreateVolunteerRecord(record) {
   let assetRegistry = await getAssetRegistry(`${NS}.VolunteerRecord`);
   await assetRegistry.add(newRecord);
 
+  //update the volunteerRecord list
+  let pRegistry = await getParticipantRegistry(`${NS}.User`);
+  let volunteerRecord = currentUser.volunteerRecord || [];
+
+  volunteerRecord.push(newId);
+  currentUser.volunteerRecord = volunteerRecord;
+
+  await pRegistry.update(currentUser);
 
 }
 
