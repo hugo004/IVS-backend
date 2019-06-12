@@ -177,6 +177,7 @@ concept DateRange {
 }
 
 abstract asset BaseAsset identified by  assetId {
+  o String name
   o String assetId
   --> User owner
   o String[] authorized optional
@@ -185,6 +186,7 @@ abstract asset BaseAsset identified by  assetId {
 concept EducationInfo extends DateRange {
   o String school
   o String major
+  o Double gpa
 }
 
 asset Education extends BaseAsset {
@@ -222,6 +224,7 @@ asset VolunteerRecord extends BaseAsset {
 
 transaction CreateVolunteerRecord {
   o VolunteerRecordInfo info
+  o String name
 }
 
 asset Record extends BaseAsset {
@@ -248,77 +251,3 @@ transaction GetAssetById {
 
 
 
-/*
-//records
-transaction VerifyRecord 
-{
-}
-
-transaction UploadRecord
-{
-  --> Record record
-}
-
-
-transaction UpdateRecord 
-{
-  --> Record newRecord
-}
-
-// event InputRecord 
-// {}
-
-// event RecordValidation
-// {}
-
-
-// //event declare
-
-
-
-// //channel
-// event CreateChannelGroup
-// {}
-
-// event JointChannelGroup
-// {}
-
-// event AddChannelMember
-// {}
-
-// event RemoveChannelMember
-// {}
-
-// event AccessChannelRecord
-// {}
-
-// event UpdateChannelLeager
-// {}
-
-// //permissions
-// event SetRecordPermission
-// {}
-
-// event RevokeAccessPermission
-// {}
-
-// event RequestAccessPermission
-// {}
-
-// event GrandAccessPermission
-// {}
-
-// event SetAccessPermission
-// {}
-
-// //Client
-// event ViewChain
-// {}
-
-// event Registraction
-// {}
-
-
-// event NotifyUser
-// {}
-*/

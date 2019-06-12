@@ -542,13 +542,14 @@ module.exports = function(app, jwt, NS, userCardPool) {
       //create education record
       for (let i=0; i<educations.length; i++) {
         let education = educations[i];
-        const {school, major, from, to} = education;
+        const {school, major, from, to, gpa} = education;
         
         let eduInfo = factory.newConcept(NS, 'EducationInfo');
         eduInfo.school = school;
         eduInfo.major = major;
         eduInfo.from = new Date(from),
         eduInfo.to = new Date(to);
+        eduInfo.gpa = Number(gpa);
 
         let eduTransction = factory.newTransaction(NS, 'CreateEducation');
         eduTransction.info = eduInfo;
@@ -575,7 +576,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
       //create volunteer record
       for (let i=0; i<volunteerRecords.length; i++) {
         let volunteerRecord = volunteerRecords[i];
-        const {taskDescription, organization, hoursWorked, date} = volunteerRecord;
+        const {taskDescription, organization, hoursWorked, date, name} = volunteerRecord;
 
         let volunteerInfo = factory.newConcept(NS, 'VolunteerRecordInfo');
         volunteerInfo.organization = organization;
@@ -586,6 +587,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
 
         let volunteerRecordTransaction = factory.newTransaction(NS, 'CreateVolunteerRecord');
         volunteerRecordTransaction.info = volunteerInfo;
+        volunteerRecordTransaction.name = name
         await connection.submitTransaction(volunteerRecordTransaction);
       }
 
