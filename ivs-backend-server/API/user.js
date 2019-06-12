@@ -598,4 +598,32 @@ module.exports = function(app, jwt, NS, userCardPool) {
     }
   })
 
+  app.get('/api/getHistory', async function(req, res){
+    try {
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
+
+      let connection = userCard.getConnection();
+      let historian = await connection.getHistorian();
+      let history = await historian.getAll();
+
+      res.status(200).json({
+        result: history
+      });
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  })
+
 };
