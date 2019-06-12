@@ -633,4 +633,80 @@ module.exports = function(app, jwt, NS, userCardPool) {
     }
   })
 
+  app.get('/api/getProfile', async function(req, res) {
+    try {
+      console.log('getProfile api start');
+
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
+
+      let connection = userCard.getConnection();
+
+      let registry = await connection.getParticipantRegistry(`${NS}.User`);
+      let me = await registry.get(userId);
+
+      //get education asset
+      registry = await connection.getAssetRegistry(`${NS}.Education`);
+      let educationsId = me.educations || [];
+      let educations = [];
+
+      for (let i=0; i<educationsId.length; i++) {
+        let id = educationsId[i];
+        let education = await registry.get(id);
+
+        educations.push(education);
+      }
+
+      //get work exp asset
+      registry = await connection.getAssetRegistry(`${NS}.WorkExp`);
+      let workExpsId = me.workExps || [];
+      let workExps = [];
+
+      for (let i=0; i<workExpsId.length; i++) {
+        let id = workExpsId[i];
+        let workExp = await registry.get(id);
+
+        workExps.push(workExp);
+      }
+
+      //get vonlunteer record asset
+      registry = await connection.getAssetRegistry(`${NS}.VolunteerRecord`);
+      let volunteerRecordId = me.volunteerRecord || [];
+      let records = [];
+      
+      for (let i=0; i<volunteerRecordId.length; i++) {
+        let id = volunteerRecordId[i];
+        let record = await registry.get(id);
+
+        records.push(record);
+      }
+
+      let userInfo = {
+        // info: me.baseInfo,
+        Education: educations,
+        WorkExp: workExps,
+        VolunteerRecord: records
+      };
+
+      res.status(200).json({
+        result: userInfo
+      });
+
+      console.log('getProfile api finish');
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  })
+
 };
