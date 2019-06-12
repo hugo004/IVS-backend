@@ -626,6 +626,8 @@ async function CreateChannel(channel) {
   const pRegistry = await getParticipantRegistry(`${NS}.User`);
 
   //check invite user is exit
+  let inviteMembers = [];
+
   if (channel.members)
   {
     const members = channel.members || [];
@@ -636,28 +638,78 @@ async function CreateChannel(channel) {
       //if have invalid user, throw error and stop pogram
       if (!user) throw new Error('User not exist');
       
-      //update user's channels data
-      const userChannels = user.channels || [];
-      const index = userChannels.indexOf(newChannelId);
-      // join channel if not join
-      if (index < 0)
-      {
-        userChannels.push(newChannelId);
-      }
-      user.channels = userChannels;
-
-      //udpate user belonging channel 
-      await pRegistry.update(user);
     }
 
-    //add user to channel
-    newChannel.members = members;
+    //add me as channel member
+    newChannel.members = [channel.ownerId];
+    
+    //filter out channel owner, don't send invitation for owner
+    inviteMembers = members.filter(e => e != channel.ownerId);
   }
+
+  //send channel member inviration
+  await SendChannelInvitation({
+    'senderName': channel.owner,
+    'channelId': newChannelId,
+    'members': inviteMembers
+  });
 
   //registry the channel
   const cRegistry = await getParticipantRegistry(`${NS}.Channel`);
   await cRegistry.add(newChannel);
+
+  //update my channel list
+  let currentUser = await pRegistry.get(channel.ownerId);
+
+  let myChannel = currentUser.channels || [];
+  myChannel.push(newChannelId);
+  currentUser.channels = myChannel;
+
+  await pRegistry.update(currentUser);
 }
+
+/**
+ * 
+ * @param {org.example.ivsnetwork.SendChannelInvitation} invite 
+ * @transaction
+ */
+async function SendChannelInvitation(invite) {
+
+  const {channelId, senderName, members} = invite;
+
+  //send channel invitation
+  let pRegistry = await getParticipantRegistry(`${NS}.User`);
+  let aRegistry = await getAssetRegistry(`${NS}.Request`);
+  let factory = getFactory();
+
+  for (let i=0; i<members.length; i++) {
+    let mid = members[i];
+    let member = await pRegistry.get(mid);
+
+    if (!member) {
+      throw new Error('Invaited member not exist');
+    }
+
+    //send invitation message to thise new members if member exist
+    let newRequestId = UIDGenerator('r');
+
+    let invation = factory.newResource(NS, 'Request', newRequestId);
+    invation.requestType = 'CHANNEL';
+    invation.assetName = 'User';
+    invation.requestName = 'Channel Invitation';
+    invation.receiverName = `${member.baseInfo.lastName} ${member.baseInfo.firstName}`;
+    invation.receiverId = member.userId;
+    invation.senderId = channelId; //must use channel id, for add user to channel, if them accept
+    invation.senderName = senderName;
+    invation.createTime = new Date();
+
+    //add new reuqest to network
+    await aRegistry.add(invation);
+    
+  }
+
+ }
+
 
 /**
  * @param {org.example.ivsnetwork.InviteChannelMember} invite
@@ -760,4 +812,5 @@ async function CreateChannel(channel) {
   //update channel info
   await cRegistry.update(channel);
  }
+
 

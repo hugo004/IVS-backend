@@ -394,6 +394,8 @@ module.exports = function(app, jwt, NS, userCardPool) {
    */
   app.get('/api/getUserChannel', async function(req, res) {
     try {
+      console.log('getUserChannel api start');
+
       const {authorization} = req.headers;
       const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
 
@@ -442,6 +444,9 @@ module.exports = function(app, jwt, NS, userCardPool) {
       res.status(200).json({
         result: responseList
       });
+
+      console.log('getUserChannel api finish');
+
     }
     
     catch (error) {

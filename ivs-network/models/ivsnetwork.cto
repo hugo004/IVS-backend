@@ -58,6 +58,12 @@ transaction RemoveChannelMember {
   o String[] users
 }
 
+transaction SendChannelInvitation {
+  o String channelId
+  o String senderName
+  o String[] members
+}
+
 //access control
 
 abstract transaction AuthorizeTransaction {
