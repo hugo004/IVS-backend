@@ -25,50 +25,6 @@ const AdminCard = new IvsNetwork('admin@ivs-network');
 
 module.exports = function(app, jwt, NS, userCardPool) {
 
-  app.post('/api/admin/createUser', async function(req, res) {
-    try{
-      const {
-        firstName,
-        lastName,
-        phone,
-        email,
-        location
-      } = req.body;
-
-
-      //connet to admin network
-      let definition = await AdminCard.connect();
-      let connection = AdminCard.getConnection();
-      let factory = definition.getFactory();
-
-      //create concept reference
-      let baseInfo = factory.newConcept(NS, 'BaseInfo');
-      baseInfo.firstName = firstName;
-      baseInfo.lastName = lastName;
-      baseInfo.phone = phone;
-      baseInfo.email = email;
-      baseInfo.location = location;
-
-      //new transaction
-      let transaction = factory.newTransaction(NS, 'CreateUser');
-      transaction.baseInfo = baseInfo;
-
-      //submit transaction to create user
-      await connection.submitTransaction(transaction);
-      await AdminCard.disconnect();
-
-      res.status(200).json({
-        result: 'User Created'
-      });
-    }
-    catch (error) {
-      res.status(500).json({
-        error: error.toString()
-      });
-    }
-  })
-
-
   /**
    * this api call will reutrn all defined asset in the business network
    */
@@ -153,6 +109,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
 
       //add owner id as part of channel member
       members.push(userId);
+
 
       //submit transaction
       let factory = definition.getFactory();
@@ -291,42 +248,49 @@ module.exports = function(app, jwt, NS, userCardPool) {
 
       //check new members is exist
       await AdminCard.connect();
+
       let connection = AdminCard.getConnection();
-      let pRegistry = await connection.getParticipantRegistry(`${NS}.User`);
-      let aRegistry = await connection.getAssetRegistry(`${NS}.Request`);
-
       let definition = AdminCard.getDefinition();
+
+      // let pRegistry = await connection.getParticipantRegistry(`${NS}.User`);
+      // let aRegistry = await connection.getAssetRegistry(`${NS}.Request`);
+
       let factory = definition.getFactory();
+      let transaction = factory.newTransaction(NS, 'SendChannelInvitation');
+      transaction.channelId = channelId;
+      transaction.members = newMembers;
+      transaction.senderName = userName;
 
+      await connection.submitTransaction(transaction);
 
-      for (let i=0; i<newMembers.length; i++) {
-        let mid = newMembers[i];
-        let member = await pRegistry.get(mid);
+      // for (let i=0; i<newMembers.length; i++) {
+      //   let mid = newMembers[i];
+      //   let member = await pRegistry.get(mid);
 
-        if (!member) {
-          req.status(400).json({
-            error: 'Invaited member not exist'
-          });
-        }
+      //   if (!member) {
+      //     req.status(400).json({
+      //       error: 'Invaited member not exist'
+      //     });
+      //   }
 
-        //send invitation message to thise new members if member exist
-        let newRequestId = UIDGenerator('r');
+      //   //send invitation message to thise new members if member exist
+      //   let newRequestId = UIDGenerator('r');
 
-        let invation = factory.newResource(NS, 'Request', newRequestId);
-        invation.requestType = 'CHANNEL';
-        invation.assetName = 'User';
-        invation.requestName = 'Channel Invitation';
-        invation.remarks = remarks;
-        invation.receiverName = `${member.baseInfo.lastName} ${member.baseInfo.firstName}`;
-        invation.receiverId = member.userId;
-        invation.senderId = channelId; //must use channel id, for add user to channel, if them accept
-        invation.senderName = userName;
-        invation.createTime = new Date();
+      //   let invation = factory.newResource(NS, 'Request', newRequestId);
+      //   invation.requestType = 'CHANNEL';
+      //   invation.assetName = 'User';
+      //   invation.requestName = 'Channel Invitation';
+      //   invation.remarks = remarks;
+      //   invation.receiverName = `${member.baseInfo.lastName} ${member.baseInfo.firstName}`;
+      //   invation.receiverId = member.userId;
+      //   invation.senderId = channelId; //must use channel id, for add user to channel, if them accept
+      //   invation.senderName = userName;
+      //   invation.createTime = new Date();
 
-        //add new reuqest to network
-        await aRegistry.add(invation);
+      //   //add new reuqest to network
+      //   await aRegistry.add(invation);
         
-      }
+      // }
 
       await AdminCard.disconnect();
 
@@ -571,5 +535,72 @@ module.exports = function(app, jwt, NS, userCardPool) {
     }
   })
 
+  /**
+   * @param {userId}
+   * return user list in network, exclude the current user
+   */
+  app.get('/api/admin/getUsers', async function(req, res) {
+    try {
+      console.log('getUser api start');
+
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret)
+
+      await AdminCard.connect();
+
+      let connection = AdminCard.getConnection();
+      let registry = await connection.getParticipantRegistry(`${NS}.User`);
+      let allUsers = await registry.getAll();
+
+      //filter out me from user list
+      let filtered = allUsers.filter(e => e.userId != userId);
+
+      await AdminCard.disconnect();
+
+      res.status(200).json({
+        result: filtered
+      });
+
+      console.log('getUser api finish');
+      
+    }
+    catch (error) {
+      res.status(500).json({
+        error: error
+      });
+    }
+  })
+
+  /**
+   * @param {assetName, userId} req
+   */
+  app.get('api/amdin/getUserAsset', async function (req, res) {
+    try {
+      console.log('getUserAsset api start');
+
+      const {assetName, userId} = req.body;
+      await AdminCard.connect();
+
+      let connection = AdminCard.getConnection();
+      let registry = await connection.getAssetRegistry(`${NS}.${assetName}`);
+      let assets = await registry.getAll();
+
+      let myAsset = assets.filter(e => e.owner == userId);
+
+      await AdminCard.disconnect();
+
+      res.status(200).json({
+        result: myAsset
+      });
+
+      console.log('getUserAsset api finish');
+      
+    }
+    catch (error) {
+      res.status(500).json({
+        error: error
+      });
+    }
+  })
 
 }

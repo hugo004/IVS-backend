@@ -62,6 +62,7 @@ transaction SendChannelInvitation {
   o String channelId
   o String senderName
   o String[] members
+  o String remarks optional
 }
 
 //access control

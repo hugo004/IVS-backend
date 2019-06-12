@@ -642,7 +642,7 @@ async function CreateChannel(channel) {
 
     //add me as channel member
     newChannel.members = [channel.ownerId];
-    
+
     //filter out channel owner, don't send invitation for owner
     inviteMembers = members.filter(e => e != channel.ownerId);
   }
@@ -675,7 +675,7 @@ async function CreateChannel(channel) {
  */
 async function SendChannelInvitation(invite) {
 
-  const {channelId, senderName, members} = invite;
+  const {channelId, senderName, members, remarks} = invite;
 
   //send channel invitation
   let pRegistry = await getParticipantRegistry(`${NS}.User`);
@@ -693,18 +693,22 @@ async function SendChannelInvitation(invite) {
     //send invitation message to thise new members if member exist
     let newRequestId = UIDGenerator('r');
 
-    let invation = factory.newResource(NS, 'Request', newRequestId);
-    invation.requestType = 'CHANNEL';
-    invation.assetName = 'User';
-    invation.requestName = 'Channel Invitation';
-    invation.receiverName = `${member.baseInfo.lastName} ${member.baseInfo.firstName}`;
-    invation.receiverId = member.userId;
-    invation.senderId = channelId; //must use channel id, for add user to channel, if them accept
-    invation.senderName = senderName;
-    invation.createTime = new Date();
+    let invitation = factory.newResource(NS, 'Request', newRequestId);
+    invitation.requestType = 'CHANNEL';
+    invitation.assetName = 'User';
+    invitation.requestName = 'Channel Invitation';
+    invitation.receiverName = `${member.baseInfo.lastName} ${member.baseInfo.firstName}`;
+    invitation.receiverId = member.userId;
+    invitation.senderId = channelId; //must use channel id, for add user to channel, if them accept
+    invitation.senderName = senderName;
+    invitation.createTime = new Date();
+
+    if (remarks) {
+      invitation.remarks = remarks;
+    }
 
     //add new reuqest to network
-    await aRegistry.add(invation);
+    await aRegistry.add(invitation);
     
   }
 
