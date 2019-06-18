@@ -142,9 +142,12 @@ module.exports = function(app, jwt, NS, userCardPool) {
    */
   app.get('/api/admin/getChannelMembersAssets', async function(req, res) {
     try {
+      console.log('getChannelMembersAssets api start');
+
       //check user is authorized
       const {authorization} = req.headers;
       Helper.GetTokenInfo(jwt, authorization, secret);
+
 
       //get all defined asset from the network
       await AdminCard.connect();
@@ -157,11 +160,12 @@ module.exports = function(app, jwt, NS, userCardPool) {
           allAssetName.push(element.id);
       });
 
+
       await AdminCard.disconnect();
 
       //get members id
       let {memberIds} = req.query;
-
+      
       //if string type mean no array, convert to array
       if (typeof memberIds == 'string') {
         memberIds = [memberIds];
@@ -211,10 +215,64 @@ module.exports = function(app, jwt, NS, userCardPool) {
         membersAsset[memberId] = myAsset;
       }
 
+
       res.status(200).json({
         result: membersAsset
       });
 
+      console.log('getChannelMembersAssets api finish');
+
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  })
+  
+  /**
+   * @param {userId, channelId}
+   */
+  app.get('/api/admin/GetChannelAssets', async function(req, res) {
+    try {
+      console.log('GetChannelAssets api start');
+
+      //check user is authorized
+      const {authorization} = req.headers;
+      Helper.GetTokenInfo(jwt, authorization, secret);
+
+
+      //get all defined asset from the network
+      await AdminCard.connect();
+      let connection = AdminCard.getConnection();
+
+      const {channelId} = req.query;
+
+      //get this channel's record
+      let channelAsset = [];
+      let pRegistry = await connection.getParticipantRegistry(`${NS}.Channel`);
+      let channel = await pRegistry.get(channelId);
+
+      let registry = await connection.getAssetRegistry(`${NS}.Record`);
+      if (channel.records) {
+        for (let i=0; i<channel.records.length; i++) {
+          let rid = channel.records[i];
+          let record = await registry.get(rid);
+
+          if (record) {
+            channelAsset.push(record);
+          }
+        }
+      }
+
+      await AdminCard.disconnect();
+
+      res.status(200).json({
+        result: channelAsset
+      });
+
+      console.log('GetChannelAssets api finish');
     }
     catch (error) {
       let statusCode = Helper.ErrorCode(error);
@@ -418,6 +476,68 @@ module.exports = function(app, jwt, NS, userCardPool) {
     }
   })
 
+    /**
+   * @param {channelId, name, file} req
+   */
+  app.post('/api/admin/UploadChannelAsset', async function(req, res) {
+    try {
+      console.log('UploadChannelAsset api start');
+
+      const {authorization} = req.headers;
+      Helper.GetTokenInfo(jwt, authorization, secret);
+
+
+      const {channelId} = req.body;
+
+      const {records} = req.files;
+      let {data, mimetype, name} = records;
+      let base64Str =  Helper.getBase64(data);
+
+      await AdminCard.connect();
+      let connection = AdminCard.getConnection();
+      let definition = AdminCard.getDefinition();
+      //get channel
+      let pRegistry = await connection.getParticipantRegistry(`${NS}.Channel`);
+      let channel = await pRegistry.get(channelId);
+      if (!channel) throw new Error ('channel not exit');
+
+      //new channel record
+      let aRegistry = await connection.getAssetRegistry(`${NS}.Record`);
+      let factory = definition.getFactory();
+      
+      let newRecordId = UIDGenerator('r');
+      let newRecord = factory.newResource(NS, 'Record', newRecordId);
+      newRecord.fileType = mimetype;
+      newRecord.createTime = new Date();
+      newRecord.encrypted = base64Str;
+      newRecord.name = name;
+      newRecord.owner =  channelId;
+
+      await aRegistry.add(newRecord);
+
+      //update records list
+      let channelRecords = channel.records || [];
+      channelRecords.push(newRecordId);
+      channel.records = channelRecords;
+
+      await pRegistry.update(channel);
+
+      await AdminCard.disconnect();
+
+      res.status(200).json({
+        result: 'success'
+      });
+
+
+      console.log('UploadChannelAsset api finish');
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  })
 
   /**
    * @param {userName, password, firstName, lastName, email, phone} req
@@ -555,7 +675,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
       let assets = await registry.getAll();
 
 
-      let myAsset = assets.filter(e => e.owner.getIdentifier() == userId);
+      let myAsset = assets.filter(e => e.owner == userId);
 
       await AdminCard.disconnect();
 

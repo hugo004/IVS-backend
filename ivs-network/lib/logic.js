@@ -60,7 +60,7 @@ async function CreateEducation(education) {
 
   //get current user, and the record own by current user
   let currentUser = getCurrentParticipant();
-  newEducation.owner = factory.newRelationship(NS, 'User', currentUser.getIdentifier());
+  newEducation.owner =  currentUser.getIdentifier();
   newEducation.name = education.info.school;
 
   let assetRegistry = await getAssetRegistry(`${NS}.Education`);
@@ -84,7 +84,7 @@ async function AddEducation(factory, data) {
 
   //get current user, and the record own by current user
   let currentUser = getCurrentParticipant();
-  newEducation.owner = factory.newRelationship(NS, 'User', currentUser.getIdentifier());
+  newEducation.owner =  currentUser.getIdentifier();
 
   let assetRegistry = await getAssetRegistry(`${NS}.Education`);
   await assetRegistry.add(newEducation);
@@ -115,7 +115,7 @@ async function CreateWorkExp(workExp) {
 
   //get current user, and the record own by current user
   let currentUser = getCurrentParticipant();
-  newExp.owner = factory.newRelationship(NS, 'User', currentUser.getIdentifier());
+  newExp.owner = currentUser.getIdentifier();
   newExp.name = workExp.info.company;
 
   let assetRegistry = await getAssetRegistry(`${NS}.WorkExp`);
@@ -139,7 +139,7 @@ async function AddWorkExp(factory, data) {
 
   //get current user, and the record own by current user
   let currentUser = getCurrentParticipant();
-  newExp.owner = factory.newRelationship(NS, 'User', currentUser.getIdentifier());
+  newExp.owner = currentUser.getIdentifier();
 
 
   let assetRegistry = await getAssetRegistry(`${NS}.WorkExp`);
@@ -172,7 +172,7 @@ async function CreateVolunteerRecord(record) {
 
   //get current user, and the record own by current user
   let currentUser = getCurrentParticipant();
-  newRecord.owner = factory.newRelationship(NS, 'User', currentUser.getIdentifier());
+  newRecord.owner = currentUser.getIdentifier();
   newRecord.name = record.name;
   
   let assetRegistry = await getAssetRegistry(`${NS}.VolunteerRecord`);
@@ -209,7 +209,7 @@ async function CreateRecord(record) {
 
   //get current user, and the record own by current user
   let currentUser = getCurrentParticipant();
-  newRecord.owner = factory.newRelationship(NS, 'User', currentUser.getIdentifier());
+  newRecord.owner = currentUser.getIdentifier();
 
   let assetRegistry = await getAssetRegistry(`${NS}.Record`);
   await assetRegistry.add(newRecord);

@@ -290,7 +290,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
         let targetAsset = await aRegistry.get(id);
 
         //check the requested asset is own by receiver
-        let ownerId  = targetAsset.owner.getIdentifier();
+        let ownerId  = targetAsset.owner;
         if (!(ownerId == receiverId)) throw new Error (`Asset Id: ${targetAsset.getIdentifier()} not own by receiver`);
 
         requestList.push(id);
@@ -723,7 +723,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
   }),
 
   /**
-   * @param {records, name}
+   * @param {records, name} req
    */
   app.post('/api/UploadRecordFiles', async function(req, res) {
     try {
@@ -772,5 +772,6 @@ module.exports = function(app, jwt, NS, userCardPool) {
       });
     }
   })
+
 
 };

@@ -12,6 +12,8 @@ concept BaseInfo {
   o String phone optional
 }
 
+
+
 abstract participant BaseUser identified by userId {
   o String userId
   o BaseInfo baseInfo
@@ -41,6 +43,7 @@ participant Channel identified by channelId {
   o String ownerId
   o DateTime createTime
   o String[] members optional
+  o String[] records optional
 }
 
 transaction CreateChannel {
@@ -180,7 +183,8 @@ concept DateRange {
 abstract asset BaseAsset identified by  assetId {
   o String name
   o String assetId
-  --> User owner
+  // --> User owner
+  o String owner
   o String[] authorized optional
 }
 

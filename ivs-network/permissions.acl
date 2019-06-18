@@ -78,7 +78,7 @@ rule OnlyRecordOwnerFullControll {
   participant(p): "org.example.ivsnetwork.User"
   operation: ALL
   resource(r): "org.example.ivsnetwork.*"
-  condition: (r.owner.getIdentifier() == p.getIdentifier())
+  condition: (r.owner == p.getIdentifier())
   action: ALLOW
 }
 
@@ -125,7 +125,7 @@ rule ChannelMemberCanShareAsset {
   participant(p): "org.example.ivsnetwork.User"
   operation: ALL
   resource(r): "org.example.ivsnetwork.*"
-  condition: (p.channels && p.channels.indexOf(r.owner.getIdentifier()) > -1)
+  condition: (p.channels && p.channels.indexOf(r.owner) > -1)
   action: ALLOW
 }
 
