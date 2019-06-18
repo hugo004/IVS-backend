@@ -20,6 +20,7 @@ abstract participant BaseUser identified by userId {
   o String[] educations optional
   o String[] workExps optional
   o String[] volunteerRecord optional
+  o String[] records optional
 
 }
 
@@ -229,18 +230,14 @@ transaction CreateVolunteerRecord {
 
 asset Record extends BaseAsset {
   o DateTime createTime
-  o BaseInfo baseInfo
-  --> Education [] educations
-  --> WorkExp [] workExps optional
-  o String workSkills optional
+  o String fileType
+  o String encrypted
 }
 
 transaction CreateRecord {
-  o BaseInfo baseInfo
-  o EducationInfo[] educationInfo
-  o WorkExpInfo[] workExpInfo optional
-  o DateTime createTime
-  o String workSkills optional
+  o String name
+  o String fileType
+  o String encrypted
 }
 
 transaction GetAssetById {

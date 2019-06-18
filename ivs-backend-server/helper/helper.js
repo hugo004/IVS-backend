@@ -1,5 +1,7 @@
 import IvsNetwork from '../lib/ivsnetwork.js';
 
+var fs = require('fs');
+
 
 const NS = 'org.example.ivsnetwork';
 const AdminCard = "admin@ivs-network";
@@ -104,5 +106,9 @@ module.exports = {
 
     await Network.disconnect();
     return user;
-  }
+  },
+
+  getBase64:  function(file) {
+       return new Buffer(file).toString('base64');
+  },
 };

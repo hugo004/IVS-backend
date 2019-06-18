@@ -199,55 +199,29 @@ async function CreateRecord(record) {
   let factory = getFactory();
   let newRecordId = UIDGenerator('r');
 
-  //create user
-  // let user =  await AddUser(factory, record.userInfo);
-  
-  //create education info
-  let educationRefs = [];
-  let educationInfo = record.educationInfo || [];
-
-  for (let i=0; i<educationInfo.length; i++) {
-    let info = educationInfo[i];
-    let newInfo = await AddEducation(factory, info);
-    let ref = factory.newRelationship(NS, 'Education', newInfo.uid);
-
-    educationRefs.push(ref);
-  }
-
-  //create work exp info
-  let workExpRefs = [];
-  let workExpInfo = record.workExpInfo || [];
-  for (let i=0; i<workExpInfo.length; i++) {
-    let info = workExpInfo[i];
-    let newInfo = await AddWorkExp(factory, info);
-    let ref = factory.newRelationship(NS, 'WorkExp', newInfo.uid);
-
-    workExpRefs.push(ref);
-  }
-
-  
+ 
   //create record
   let newRecord = factory.newResource(NS, 'Record', newRecordId);
-  newRecord.workSkills = record.workSkills;
-  newRecord.createTime = record.createTime;
-  newRecord.baseInfo = record.baseInfo;
+  newRecord.fileType = record.fileType;
+  newRecord.createTime = record.timestamp;
+  newRecord.encrypted = record.encrypted;
+  newRecord.name = record.name;
 
-    //get current user, and the record own by current user
-    let currentUser = getCurrentParticipant();
-    newRecord.owner = factory.newRelationship(NS, 'User', currentUser.getIdentifier());
-
-  //reference to user
-//   newRecord.user = factory.newRelationship(NS, 'User', user.userId);
-
-  //reference education info
-  newRecord.educations = educationRefs;
-
-  //reference workExp info
-  newRecord.workExps = workExpRefs;
+  //get current user, and the record own by current user
+  let currentUser = getCurrentParticipant();
+  newRecord.owner = factory.newRelationship(NS, 'User', currentUser.getIdentifier());
 
   let assetRegistry = await getAssetRegistry(`${NS}.Record`);
-
   await assetRegistry.add(newRecord);
+
+  //update records list
+  let pRegistry = await getParticipantRegistry(`${NS}.User`);
+  let records = currentUser.records || [];
+
+  records.push(newRecordId);
+  currentUser.records = records;
+
+  await pRegistry.update(currentUser);
 
 }
 

@@ -679,10 +679,22 @@ module.exports = function(app, jwt, NS, userCardPool) {
       //get vonlunteer record asset
       registry = await connection.getAssetRegistry(`${NS}.VolunteerRecord`);
       let volunteerRecordId = me.volunteerRecord || [];
-      let records = [];
+      let volRecords = [];
       
       for (let i=0; i<volunteerRecordId.length; i++) {
         let id = volunteerRecordId[i];
+        let record = await registry.get(id);
+
+        volRecords.push(record);
+      }
+
+      //get record asset
+      registry = await connection.getAssetRegistry(`${NS}.Record`);
+      let recordsId = me.records || [];
+      let records = [];
+      
+      for (let i=0; i<recordsId.length; i++) {
+        let id = recordsId[i];
         let record = await registry.get(id);
 
         records.push(record);
@@ -692,7 +704,8 @@ module.exports = function(app, jwt, NS, userCardPool) {
         // info: me.baseInfo,
         Education: educations,
         WorkExp: workExps,
-        VolunteerRecord: records
+        VolunteerRecord: volRecords,
+        Record: records
       };
 
       res.status(200).json({
@@ -700,6 +713,57 @@ module.exports = function(app, jwt, NS, userCardPool) {
       });
 
       console.log('getProfile api finish');
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  }),
+
+  /**
+   * @param {records, name}
+   */
+  app.post('/api/UploadRecordFiles', async function(req, res) {
+    try {
+      console.log('uploadRecordFile api start');
+
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
+
+
+      //get the file
+      let file = req.files.records;
+
+      //upload the base64 string to network
+      let {data, mimetype, name} = file;
+      let base64Str =  Helper.getBase64(data);
+
+      //submit transaction
+      let definition = userCard.getDefinition();
+      let connection = userCard.getConnection();
+
+      let factory = definition.getFactory();
+      let transaction = factory.newTransaction(NS, 'CreateRecord');
+      transaction.name = name;
+      transaction.encrypted = base64Str;
+      transaction.fileType = mimetype;
+
+      await connection.submitTransaction(transaction);
+
+      res.status(200).json({
+        result: 'success'
+      });
+
+      console.log('uploadRecordFile api finish');
     }
     catch (error) {
       let statusCode = Helper.ErrorCode(error);
