@@ -128,6 +128,8 @@ enum StatusType {
   o DENY
   o UNDETERMINED
   o REVOKED
+  o GRANT
+  o OTHER
   o ALL
 }
 
@@ -159,6 +161,7 @@ abstract transaction RequestTransaction {
   o String receiverId
   o String receiverName
   o String eventName
+  o StatusType status default='UNDETERMINED'
 }
 
 transaction RequestAccessAsset extends RequestTransaction {

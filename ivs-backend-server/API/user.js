@@ -92,9 +92,11 @@ module.exports = function(app, jwt, NS, userCardPool) {
   app.get('/api/getAccessRequestList', async function(req, res) {
     try {
 
+      console.log('GetAccessRequestList api start');
+
       const {authorization} = req.headers;
       const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
-      const {status} = req.query;
+      let {status} = req.query;
 
       let userCard = userCardPool.get(userId);
       if (!userCard) {
@@ -105,33 +107,50 @@ module.exports = function(app, jwt, NS, userCardPool) {
 
       let connection = userCard.getConnection();
 
-
-      //check new status is within status type
-      let statusTypes = ['UNDETERMINED', 'ACCEPT', 'DENY'];
-      let filterStatus = 'ALL';
-
-      if (statusTypes.includes(status)) {
-        filterStatus = status;
+      //if string type mean no array, convert to array
+      if (typeof status == 'string') {
+        status = [status];
       }
 
+      //check new status is within status type
+      let statusTypes = ['UNDETERMINED', 'ACCEPT', 'DENY', 'REVOKED', 'GRANT', 'OTHER'];
+      let filterStatus = [];
+
+      //add filter status
+      status.forEach(e => {
+        if (statusTypes.includes(e)) {
+          filterStatus.push(e);
+        }
+      });
+
+      //default all
+      if (filterStatus.length < 1) {
+        filterStatus = ['ALL'];
+      }
+
+      console.log(filterStatus);
       //get received request
       let rRegistry = await connection.getAssetRegistry(`${NS}.Request`);
 
       //this list would containt my sent request and received request
       let requestList = await rRegistry.getAll();
 
+
       //filter out the request list if receiver is me
       let filtered = requestList.filter(e => e.receiverId == userId);
 
+
       //filter out the request list by status (UNDETERMINED / DENY / ACCEPT), default return all status
-      if (!(filterStatus == 'ALL')) {
-        filtered = filtered.filter(e => e.status == filterStatus);
+      if (!filterStatus.includes('ALL')) {
+        filtered = filtered.filter(e => filterStatus.includes(e.status));
       }
 
       //return my request list
       res.status(200).json({
         result: filtered
       });
+
+      console.log('GetAccessRequestList api finish');
 
     }
     catch (error) {
@@ -145,18 +164,40 @@ module.exports = function(app, jwt, NS, userCardPool) {
 
   /**
    * return the list of request user had sent
-   * @param {userId} 
+   * @param {userId, status} 
    */
   app.get('/api/getSentRequestList', async function(req, res) {
     try {
       const {authorization} = req.headers;
       const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+      let {status} = req.query;
 
       let userCard = userCardPool.get(userId);
       if (!userCard) {
         res.status(401).json({
           error: 'user card not found, please login again'
         });
+      }
+
+      //if string type mean no array, convert to array
+      if (typeof status == 'string') {
+        status = [status];
+      }
+
+      //check new status is within status type
+      let statusTypes = ['UNDETERMINED', 'ACCEPT', 'DENY', 'REVOKED', 'GRANT', 'OTHER'];
+      let filterStatus = [];
+
+      //add filter status
+      status.forEach(e => {
+        if (statusTypes.includes(e)) {
+          filterStatus.push(e);
+        }
+      });
+
+      //default all
+      if (filterStatus.length < 1) {
+        filterStatus = ['ALL'];
       }
 
       let connection = userCard.getConnection();
@@ -170,6 +211,9 @@ module.exports = function(app, jwt, NS, userCardPool) {
       //filter out the request list if receiver is me
       let filtered = requestList.filter(e => e.senderId == userId);
       
+      if (!filterStatus.includes('ALL')) {
+        filtered = filtered.filter(e => filterStatus.includes(e.status));
+      }
 
       res.status(200).json({
         result: filtered
@@ -257,6 +301,8 @@ module.exports = function(app, jwt, NS, userCardPool) {
   app.post('/api/requestAccessAsset', async function(req, res) {
     try {
 
+      console.log('requestAccessAsset api start');
+
       const {authorization} = req.headers;
       const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
       //get request param
@@ -266,7 +312,8 @@ module.exports = function(app, jwt, NS, userCardPool) {
         assetName,
         assetId,
         eventName,
-        remarks
+        remarks,
+        status
       } = req.body;
 
       let userCard = userCardPool.get(userId);
@@ -288,11 +335,16 @@ module.exports = function(app, jwt, NS, userCardPool) {
       for (let i=0; i<assetId.length; i++) {
         let id = assetId[i];
         let targetAsset = await aRegistry.get(id);
-
-        //check the requested asset is own by receiver
+        
         let ownerId  = targetAsset.owner;
-        if (!(ownerId == receiverId)) throw new Error (`Asset Id: ${targetAsset.getIdentifier()} not own by receiver`);
-
+        //if grant record action
+        if (status == 'GRANT') {
+          if (!(ownerId == userId)) throw new Error (`Asset Id: ${targetAsset.getIdentifier()} not own by you`);
+        }
+        else {
+          //check the requested asset is own by receiver
+          if (!(ownerId == receiverId)) throw new Error (`Asset Id: ${targetAsset.getIdentifier()} not own by receiver`);
+        }
         requestList.push(id);
       };
 
@@ -316,12 +368,18 @@ module.exports = function(app, jwt, NS, userCardPool) {
         transaction.remarks = remarks;
       }
 
+      if (status) {
+        transaction.status = status;
+      }
+
       //submit request access asset transaction
       await connection.submitTransaction(transaction);
     
       res.status(200).json({
         result: 'Reqeust sent'
       });
+
+      console.log('requestAccessAsset api finish');
 
     }
     catch (error) {
@@ -332,6 +390,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
     }
   })
 
+  
   /**
    * @param {userId, requestId, revokeUser, assetName, assetIds[]} req
    */

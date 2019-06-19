@@ -514,7 +514,7 @@ async function RevokeAccessAll(revoke) {
   }
 
   //revoke access profile
-  await RevokeAccessProfile({
+  await AuthorizeAccessAsset({
     "userId": revoke.userId
   });
 }
@@ -550,11 +550,23 @@ async function RequestAccessAsset(request) {
   requestAsset.requested = request.assetId;
   requestAsset.createTime = request.timestamp;
   requestAsset.assetName = request.assetName;
-  requestAsset.status = 'UNDETERMINED';
   requestAsset.requestType = 'ASSET';
+  
+  if (request.status) {
+    requestAsset.status = request.status;
+  }
 
   //upload asset to network
   await rRegistry.add(requestAsset);
+
+  //if status is GRANT 
+  if (request.status == 'GRANT')
+    await AuthorizeAccessSpecifyRecord({
+      assetName: request.assetName,
+      assetId: request.assetId,
+      userId: request.receiverId
+    });
+
 }
 
 
