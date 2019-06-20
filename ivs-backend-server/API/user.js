@@ -357,23 +357,30 @@ module.exports = function(app, jwt, NS, userCardPool) {
 
       //new transaction
       let factory = definition.getFactory();
-      let transaction = factory.newTransaction(NS, 'RequestAccessAsset');
-      transaction.receiverId = receiverId;
-      transaction.receiverName = receiverName;
-      transaction.assetName = assetName;
-      transaction.assetId = requestList;
-      transaction.eventName = eventName;  
 
-      if (remarks) {
-        transaction.remarks = remarks;
-      }
+      //divie to single request, if requested asset more than one
+      // for the revoke action purpose
+      for (let i=0; i<requestList.length; i++) {
+        let assetId = [requestList[i]];
 
-      if (status) {
-        transaction.status = status;
-      }
+        let transaction = factory.newTransaction(NS, 'RequestAccessAsset');
+        transaction.receiverId = receiverId;
+        transaction.receiverName = receiverName;
+        transaction.assetName = assetName;
+        transaction.assetId = assetId;
+        transaction.eventName = eventName;  
 
-      //submit request access asset transaction
-      await connection.submitTransaction(transaction);
+        if (remarks) {
+          transaction.remarks = remarks;
+        }
+
+        if (status) {
+          transaction.status = status;
+        }
+
+        //submit request access asset transaction
+        await connection.submitTransaction(transaction);
+    }
     
       res.status(200).json({
         result: 'Reqeust sent'
