@@ -151,10 +151,11 @@ rule hidehistorianAccess{
 // }
 
 rule VerifierCanVerifyRecord {
-  description: "Verifier can approval the record before the record on the chain"
-  participant: "org.example.ivsnetwork.Verifier"
+  description: "Verifier can get response type of record, it response the verifier type and approval the record before the record on the chain"
+  participant(p): "org.example.ivsnetwork.Verifier"
   operation: READ, UPDATE
-  resource: "org.example.ivsnetwork.Record"
+  resource(r): "org.example.ivsnetwork.Record"
+  condition: (r.recordType == p.type)
   action: ALLOW
 }
 
@@ -163,6 +164,15 @@ rule VerifierCanReadUser {
   participant: "org.example.ivsnetwork.Verifier"
   operation: READ
   resource: "org.example.ivsnetwork.User"
+  action: ALLOW
+}
+
+
+rule UserCanReadVerifier {
+  description: "User can access verifier info"
+  participant: "org.example.ivsnetwork.User"
+  operation: READ
+  resource: "org.example.ivsnetwork.Verifier"
   action: ALLOW
 }
 

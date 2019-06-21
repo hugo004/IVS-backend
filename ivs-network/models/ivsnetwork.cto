@@ -75,12 +75,14 @@ transaction SendChannelInvitation {
 
 enum VerifierType {
   o Education
-  o Organization
-  o Company
+  o WorkExp
+  o Volunteer
   o Other
 }
 participant Verifier identified by vid {
   o String vid
+  o String userName
+  o String password
   o String name
   o AccountType accountType default = 'Verifier'
   o VerifierType type
@@ -91,58 +93,42 @@ transaction VerifyRecord {
   o Boolean isVerify
 }
 
-//access control
 
-abstract transaction AuthorizeTransaction {
-  o String userId
-  o DateTime expireTime optional
+
+// CV records
+concept DateRange {
+  o DateTime from
+  o DateTime to
 }
 
-abstract transaction AuthorizeAssetTransaction extends AuthorizeTransaction {
+abstract asset BaseAsset identified by  assetId {
+  o String name
   o String assetId
+  o String owner
+  o String[] authorized optional
+  o Boolean isVerify default = false
+}
+
+
+asset Record extends BaseAsset {
+  o DateTime createTime
+  o String fileType
+  o String encrypted
+  o VerifierType recordType default = 'Other'
+}
+
+transaction CreateRecord {
+  o String name
+  o String fileType
+  o String encrypted
+  o VerifierType recordType
+}
+
+transaction GetAssetById {
+  o String id
   o String assetName
 }
 
-abstract transaction AuthorizeAllAssetTransaction extends AuthorizeTransaction {
-  o String assetName
-  o String[] assetId optional
-}
-
-// authorize, revoke access user's all asset
-transaction AuthorizeAccessAll extends AuthorizeTransaction{  
-}
-
-transaction RevokeAccessAll extends AuthorizeTransaction {
-}
-
-//authorize, revoke access of user's specify asset record
-transaction AuthorizeAccessSpecifyRecord extends AuthorizeAllAssetTransaction{
-}
-
-transaction RevokeAccessSpecifyRecord extends AuthorizeAllAssetTransaction{
-}
-
-//authorize, revoke access user's profile 
-transaction AuthorizeAccessProfile extends AuthorizeTransaction{
-}
-
-transaction RevokeAccessProfile extends AuthorizeTransaction {
-}
-
-//authorize, revoke access user's specify asset
-transaction AuthorizeAccessAsset extends AuthorizeAssetTransaction {
-}
-
-transaction RevokeAccessAsset extends AuthorizeAssetTransaction {
-}
-
-event AuthorizeAccessEvent {
-  o String sender
-  o String receiver
-  o String[] assetName
-  o String[] assetId
-
-}
 
 //request access user asset control
 enum StatusType {
@@ -198,39 +184,58 @@ transaction  UpdateRequestStatus {
   o StatusType newStatus 
 }
 
+//access control
 
-// CV records
-concept DateRange {
-  o DateTime from
-  o DateTime to
+abstract transaction AuthorizeTransaction {
+  o String userId
+  o DateTime expireTime optional
 }
 
-abstract asset BaseAsset identified by  assetId {
-  o String name
+abstract transaction AuthorizeAssetTransaction extends AuthorizeTransaction {
   o String assetId
-  o String owner
-  o String[] authorized optional
-  o Boolean isVerify default = false
-}
-
-
-asset Record extends BaseAsset {
-  o DateTime createTime
-  o String fileType
-  o String encrypted
-}
-
-transaction CreateRecord {
-  o String name
-  o String fileType
-  o String encrypted
-}
-
-transaction GetAssetById {
-  o String id
   o String assetName
 }
 
+abstract transaction AuthorizeAllAssetTransaction extends AuthorizeTransaction {
+  o String assetName
+  o String[] assetId optional
+}
+
+// authorize, revoke access user's all asset
+transaction AuthorizeAccessAll extends AuthorizeTransaction{  
+}
+
+transaction RevokeAccessAll extends AuthorizeTransaction {
+}
+
+//authorize, revoke access of user's specify asset record
+transaction AuthorizeAccessSpecifyRecord extends AuthorizeAllAssetTransaction{
+}
+
+transaction RevokeAccessSpecifyRecord extends AuthorizeAllAssetTransaction{
+}
+
+//authorize, revoke access user's profile 
+transaction AuthorizeAccessProfile extends AuthorizeTransaction{
+}
+
+transaction RevokeAccessProfile extends AuthorizeTransaction {
+}
+
+//authorize, revoke access user's specify asset
+transaction AuthorizeAccessAsset extends AuthorizeAssetTransaction {
+}
+
+transaction RevokeAccessAsset extends AuthorizeAssetTransaction {
+}
+
+event AuthorizeAccessEvent {
+  o String sender
+  o String receiver
+  o String[] assetName
+  o String[] assetId
+
+}
 
 
 

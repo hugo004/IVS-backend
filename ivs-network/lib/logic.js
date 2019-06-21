@@ -63,6 +63,7 @@ async function CreateRecord(record) {
   newRecord.createTime = record.timestamp;
   newRecord.encrypted = record.encrypted;
   newRecord.name = record.name;
+  newRecord.recordType = record.recordType;
 
   //get current user, and the record own by current user
   let currentUser = getCurrentParticipant();

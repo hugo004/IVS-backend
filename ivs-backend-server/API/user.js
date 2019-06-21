@@ -874,6 +874,8 @@ module.exports = function(app, jwt, NS, userCardPool) {
       }
 
 
+      let {recordType} = req.body;
+
       //get the file
       let file = req.files.records;
 
@@ -890,6 +892,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
       transaction.name = name;
       transaction.encrypted = base64Str;
       transaction.fileType = mimetype;
+      transaction.recordType = recordType;
 
       await connection.submitTransaction(transaction);
 
@@ -910,7 +913,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
 
 
   /**
-   * @param {isVerify} req
+   * @param {isVerify, verifierType} req
    */
   app.get('/api/getVerifyRecord', async function (req, res) {
     try {
