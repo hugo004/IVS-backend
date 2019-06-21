@@ -40,14 +40,6 @@ rule EverybodyCanSubmitTransactions {
 // }
 
 
-// rule OwnerHasFullAccessToTheirAssets {
-//     description: "Allow all participants full access to their assets"
-//     participant(p): "ivsnetwork.User"
-//     operation: ALL
-//     resource(r): "ivsnetwork.SampleAsset"
-//     condition: (r.owner.getIdentifier() === p.getIdentifier())
-//     action: ALLOW
-// }
 
 rule SystemACL {
   description:  "System ACL to permit all access"
@@ -147,3 +139,30 @@ rule hidehistorianAccess{
   resource: "org.hyperledger.composer.system.HistorianRecord"
   action: DENY
 }
+
+
+// rule OnlyVerifiedRecordOnChain {
+//   description: "Only verified record displayed to user"
+//   participant(p): "org.example.ivsnetwork.User"
+//   operation: ALL
+//   resource(r): "org.example.ivsnetwork.*"
+//   condition: (r.owner == p.getIdentifier() && r.isVerify)
+//   action: ALLOW
+// }
+
+rule VerifierCanVerifyRecord {
+  description: "Verifier can approval the record before the record on the chain"
+  participant: "org.example.ivsnetwork.Verifier"
+  operation: READ, UPDATE
+  resource: "org.example.ivsnetwork.Record"
+  action: ALLOW
+}
+
+rule VerifierCanReadUser {
+  description: "Verifier can access user info"
+  participant: "org.example.ivsnetwork.Verifier"
+  operation: READ
+  resource: "org.example.ivsnetwork.User"
+  action: ALLOW
+}
+

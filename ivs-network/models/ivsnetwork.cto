@@ -13,9 +13,18 @@ concept BaseInfo {
 }
 
 
+enum AccountType {
+  o User
+  o Verifier
+}
 
 abstract participant BaseUser identified by userId {
   o String userId
+  o AccountType accountType default = 'User'
+
+}
+
+participant User extends BaseUser {
   o BaseInfo baseInfo
   o String[] authorized optional
   o String[] channels optional
@@ -23,11 +32,6 @@ abstract participant BaseUser identified by userId {
   o String[] workExps optional
   o String[] volunteerRecord optional
   o String[] records optional
-
-}
-
-participant User extends BaseUser {
-
 }
 
 transaction CreateUser {
@@ -67,6 +71,24 @@ transaction SendChannelInvitation {
   o String senderName
   o String[] members
   o String remarks optional
+}
+
+enum VerifierType {
+  o Education
+  o Organization
+  o Company
+  o Other
+}
+participant Verifier identified by vid {
+  o String vid
+  o String name
+  o AccountType accountType default = 'Verifier'
+  o VerifierType type
+}
+
+transaction VerifyRecord {
+  o String recordId
+  o Boolean isVerify
 }
 
 //access control
@@ -186,54 +208,11 @@ concept DateRange {
 abstract asset BaseAsset identified by  assetId {
   o String name
   o String assetId
-  // --> User owner
   o String owner
   o String[] authorized optional
+  o Boolean isVerify default = false
 }
 
-concept EducationInfo extends DateRange {
-  o String school
-  o String major
-  o Double gpa
-}
-
-asset Education extends BaseAsset {
-  o EducationInfo info
-}
-
-transaction CreateEducation {
-  o EducationInfo info
-}
-
-concept WorkExpInfo extends DateRange {
-  o String company
-  o String jobTitle
-  o String jobDuty
-  o String skills optional
-}
-
-asset WorkExp extends BaseAsset {
-  o WorkExpInfo info
-}
-
-transaction CreateWorkExp {
-  o WorkExpInfo info
-}
-
-concept VolunteerRecordInfo extends DateRange {
-  o String taskDescription
-  o String organization
-  o Integer hoursWorked
-}
-
-asset VolunteerRecord extends BaseAsset {
-  o VolunteerRecordInfo info
-}
-
-transaction CreateVolunteerRecord {
-  o VolunteerRecordInfo info
-  o String name
-}
 
 asset Record extends BaseAsset {
   o DateTime createTime

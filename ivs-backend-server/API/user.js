@@ -35,8 +35,53 @@ module.exports = function(app, jwt, NS, userCardPool) {
     catch (error) {
       res.status(401).json({error: error.toString()});
     }
-})
+  })
 
+
+    /**
+   * @param {userName, password}
+   */
+  app.post('/api/verifierLogin', async function (req, res) {
+    try {
+
+      const {
+        userName,
+        password
+      } = req.body;
+
+      let userId = await Helper.GetUserId(userName, password);
+      let userCard = await Helper.GetUserCard(userId);
+      if (!userCard) throw new Error('user name or password not correct');
+
+      let userInfo = await Helper.GetUserInfo(userId, 'Verifier');
+
+      //generate token
+      let payload = {
+        userId: userId,
+      };
+
+      let accessToken = jwt.sign({
+        payload,
+        exp: Math.floor(Date.now() / 1000) + expireTime
+      }, secret);
+
+
+      //connect the network when user login and put logined user card into pool
+      await userCard.connect();
+      userCardPool.set(userId, userCard);
+
+      res.status(200).json({
+        result: {
+          message: 'login success',
+          accessToken: accessToken,
+          userInfo: JSON.stringify(userInfo)
+        }
+      });
+    }
+    catch (error) {
+      res.status(500).json({error: error.toString()});
+    }
+  })
 
   /**
    * @param {userName, password}
@@ -718,41 +763,65 @@ module.exports = function(app, jwt, NS, userCardPool) {
       let registry = await connection.getParticipantRegistry(`${NS}.User`);
       let me = await registry.get(userId);
 
-      //get education asset
-      registry = await connection.getAssetRegistry(`${NS}.Education`);
-      let educationsId = me.educations || [];
-      let educations = [];
+      //decrepted
+      // //get education asset
+      // registry = await connection.getAssetRegistry(`${NS}.Education`);
+      // let educationsId = me.educations || [];
+      // let educations = [];
 
-      for (let i=0; i<educationsId.length; i++) {
-        let id = educationsId[i];
-        let education = await registry.get(id);
+      // for (let i=0; i<educationsId.length; i++) {
+      //   let id = educationsId[i];
+      //   let education = await registry.get(id);
 
-        educations.push(education);
-      }
+      //   educations.push(education);
+      // }
 
-      //get work exp asset
-      registry = await connection.getAssetRegistry(`${NS}.WorkExp`);
-      let workExpsId = me.workExps || [];
-      let workExps = [];
+      // //get work exp asset
+      // registry = await connection.getAssetRegistry(`${NS}.WorkExp`);
+      // let workExpsId = me.workExps || [];
+      // let workExps = [];
 
-      for (let i=0; i<workExpsId.length; i++) {
-        let id = workExpsId[i];
-        let workExp = await registry.get(id);
+      // for (let i=0; i<workExpsId.length; i++) {
+      //   let id = workExpsId[i];
+      //   let workExp = await registry.get(id);
 
-        workExps.push(workExp);
-      }
+      //   workExps.push(workExp);
+      // }
 
-      //get vonlunteer record asset
-      registry = await connection.getAssetRegistry(`${NS}.VolunteerRecord`);
-      let volunteerRecordId = me.volunteerRecord || [];
-      let volRecords = [];
+      // //get vonlunteer record asset
+      // registry = await connection.getAssetRegistry(`${NS}.VolunteerRecord`);
+      // let volunteerRecordId = me.volunteerRecord || [];
+      // let volRecords = [];
       
-      for (let i=0; i<volunteerRecordId.length; i++) {
-        let id = volunteerRecordId[i];
-        let record = await registry.get(id);
+      // for (let i=0; i<volunteerRecordId.length; i++) {
+      //   let id = volunteerRecordId[i];
+      //   let record = await registry.get(id);
 
-        volRecords.push(record);
-      }
+      //   volRecords.push(record);
+      // }
+
+      // //get record asset
+      // registry = await connection.getAssetRegistry(`${NS}.Record`);
+      // let recordsId = me.records || [];
+      // let records = [];
+      
+      // for (let i=0; i<recordsId.length; i++) {
+      //   let id = recordsId[i];
+      //   let record = await registry.get(id);
+
+      //   records.push(record);
+      // }
+
+
+      
+
+      // let userInfo = {
+      //   // info: me.baseInfo,
+      //   Education: educations,
+      //   WorkExp: workExps,
+      //   VolunteerRecord: volRecords,
+      //   Record: records
+      // };
 
       //get record asset
       registry = await connection.getAssetRegistry(`${NS}.Record`);
@@ -763,16 +832,15 @@ module.exports = function(app, jwt, NS, userCardPool) {
         let id = recordsId[i];
         let record = await registry.get(id);
 
-        records.push(record);
+        //only verify record
+        if (record.isVerify)
+          records.push(record);
       }
 
       let userInfo = {
-        // info: me.baseInfo,
-        Education: educations,
-        WorkExp: workExps,
-        VolunteerRecord: volRecords,
         Record: records
       };
+
 
       res.status(200).json({
         result: userInfo
@@ -839,5 +907,125 @@ module.exports = function(app, jwt, NS, userCardPool) {
     }
   })
 
+
+
+  /**
+   * @param {isVerify} req
+   */
+  app.get('/api/getVerifyRecord', async function (req, res) {
+    try {
+      console.log('getVerifyRecord api start');
+
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
+      
+      const {isVerify} = req.query;
+
+      let connection = userCard.getConnection();
+      let registry = await connection.getAssetRegistry(`${NS}.Record`);
+
+      let records = await registry.getAll();
+
+      let filtered = records;
+
+      if (typeof isVerify == 'boolean') {
+        filtered = filtered.filter(e => e.isVerify == isVerify);
+      }
+
+      let recordList = [];
+      let pRegistry = await connection.getParticipantRegistry(`${NS}.User`);
+      
+      for (let i=0; i<filtered.length; i++) {
+        let record = filtered[i];
+        let owner = await pRegistry.get(record.owner);
+        
+        //clone the object, replace owner id with object
+        const {assetId, createTime, encrypted, fileType, isVerify, name} = record;
+        recordList.push({
+          'assetId': assetId,
+          'creatTime': createTime,
+          'encrypted': encrypted,
+          'fileType': fileType,
+          'isVerify': isVerify,
+          'name': name,
+          'owner': owner
+        });
+      }
+
+      res.status(200).json({
+        result: recordList
+      });
+
+      console.log('getVerifyRecord api finish');
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  })
+
+  /**
+   * @param {recordId, recordName, isVerify, ownerId, ownerName} req
+   */
+  app.put('/api/verifyRecord', async function (req, res) {
+    try {
+      console.log('verifyRecord api start');
+
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+      let {isVerify, recordId, recordName, ownerId, ownerName} = req.body;
+
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
+
+      let definition = userCard.getDefinition();
+      let connection = userCard.getConnection();
+      let factory = definition.getFactory();
+
+      let transaction = factory.newTransaction(NS, 'VerifyRecord');
+      transaction.recordId = recordId;
+      transaction.isVerify = isVerify;
+
+      await connection.submitTransaction(transaction);
+
+      //send notification
+      transaction = factory.newTransaction(NS, 'RequestAccessAsset');
+      transaction.receiverId = ownerId;
+      transaction.receiverName = ownerName;
+      transaction.assetName = recordName;
+      transaction.assetId = [recordId];
+      transaction.eventName = 'Record Verification';  
+      transaction.remarks = 'Your record was verified';
+      transaction.status = 'OTHER';
+
+      await connection.submitTransaction(transaction);
+
+      res.status(200).json({
+        result: 'Record Verified'
+      });
+
+      console.log('verifyRecord api finish');
+
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  })
 
 };

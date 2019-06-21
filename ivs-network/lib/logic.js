@@ -45,149 +45,6 @@ async function AddUser(factory, data) {
   return newUser;
 }
 
-/**
- * @param {org.example.ivsnetwork.CreateEducation} education - the trade to be processed
- * @transaction
- */
-async function CreateEducation(education) {
-
-  let factory = getFactory();
-
-  let newId = UIDGenerator('e');
-
-  let newEducation = factory.newResource(NS, 'Education', newId);
-  newEducation.info = education.info;
-
-  //get current user, and the record own by current user
-  let currentUser = getCurrentParticipant();
-  newEducation.owner =  currentUser.getIdentifier();
-  newEducation.name = education.info.school;
-
-  let assetRegistry = await getAssetRegistry(`${NS}.Education`);
-  await assetRegistry.add(newEducation);
-
-  //update education list
-  let pRegistry = await getParticipantRegistry(`${NS}.User`);
-  let educations = currentUser.educations || [];
-
-  educations.push(newId);
-  currentUser.educations = educations;
-
-  await pRegistry.update(currentUser);
-}
-
-async function AddEducation(factory, data) {
-  let newId = UIDGenerator('e');
-
-  let newEducation = factory.newResource(NS, 'Education', newId);
-  newEducation.info = data;
-
-  //get current user, and the record own by current user
-  let currentUser = getCurrentParticipant();
-  newEducation.owner =  currentUser.getIdentifier();
-
-  let assetRegistry = await getAssetRegistry(`${NS}.Education`);
-  await assetRegistry.add(newEducation);
-
-  //update education list
-  let pRegistry = getParticipantRegistry(`${NS}.User`);
-  let educations = currentUser.educations || [];
-
-  educations.push(newId);
-  currentUser.educations = educations;
-
-  await pRegistry.update(currentUser);
-
-  return newEducation;
-}
-
-/**
- * @param {org.example.ivsnetwork.CreateWorkExp} workExp - the trade to be processed
- * @transaction
- */
-async function CreateWorkExp(workExp) {
-
-  let factory = getFactory();
-
-  let newId = UIDGenerator('c');
-  let newExp = factory.newResource(NS, 'WorkExp', newId);
-  newExp.info = workExp.info;
-
-  //get current user, and the record own by current user
-  let currentUser = getCurrentParticipant();
-  newExp.owner = currentUser.getIdentifier();
-  newExp.name = workExp.info.company;
-
-  let assetRegistry = await getAssetRegistry(`${NS}.WorkExp`);
-  await assetRegistry.add(newExp);
-
-  //update the workExp list
-  let pRegistry = await getParticipantRegistry(`${NS}.User`);
-  let workExps = currentUser.workExps || [];
-
-  workExps.push(newId);
-  currentUser.workExps = workExps;
-
-  await pRegistry.update(currentUser);
-}
-
-async function AddWorkExp(factory, data) {
-
-  let newId = UIDGenerator('c');
-  let newExp = factory.newResource(NS, 'WorkExp', newId);
-  newExp.info = data;
-
-  //get current user, and the record own by current user
-  let currentUser = getCurrentParticipant();
-  newExp.owner = currentUser.getIdentifier();
-
-
-  let assetRegistry = await getAssetRegistry(`${NS}.WorkExp`);
-  await assetRegistry.add(newExp);
-
-  //update the workExp list
-  let pRegistry = getParticipantRegistry(`${NS}.User`);
-  let workExps = currentUser.workExps || [];
-
-  workExps.push(newId);
-  currentUser.workExps = workExps;
-
-  await pRegistry.update(currentUser);
-
-  return newExp;
-}
-
-
-/**
- * 
- * @param {org.example.ivsnetwork.CreateVolunteerRecord} record 
- * @transaction
- */
-async function CreateVolunteerRecord(record) {
-  let newId = UIDGenerator('v');
-
-  let factory = getFactory();
-  let newRecord = factory.newResource(NS, 'VolunteerRecord', newId);
-  newRecord.info = record.info;
-
-  //get current user, and the record own by current user
-  let currentUser = getCurrentParticipant();
-  newRecord.owner = currentUser.getIdentifier();
-  newRecord.name = record.name;
-  
-  let assetRegistry = await getAssetRegistry(`${NS}.VolunteerRecord`);
-  await assetRegistry.add(newRecord);
-
-  //update the volunteerRecord list
-  let pRegistry = await getParticipantRegistry(`${NS}.User`);
-  let volunteerRecord = currentUser.volunteerRecord || [];
-
-  volunteerRecord.push(newId);
-  currentUser.volunteerRecord = volunteerRecord;
-
-  await pRegistry.update(currentUser);
-
-}
 
 /**
  * @param {org.example.ivsnetwork.CreateRecord} record - the trade to be processed
@@ -531,7 +388,14 @@ async function RequestAccessAsset(request) {
   let me = getCurrentParticipant();
   if (!me) throw new Error('A user not exist');
 
-  const {userName} = me.baseInfo;
+  let userName;
+
+  if (me.accountType == 'User') {
+    userName = me.baseInfo.userName
+  }
+  else {
+    userName = me.userName
+  }
 
   //create request asset and fill-up info
   let newRequestId = UIDGenerator('r');
@@ -802,6 +666,21 @@ async function SendChannelInvitation(invite) {
 
   //update channel info
   await cRegistry.update(channel);
+ }
+
+ /**
+  * 
+  * @param {org.example.ivsnetwork.VerifyRecord} param 
+  * @transaction
+  */
+ async function VerifyRecord(param) {
+
+  let registry = await getAssetRegistry(`${NS}.Record`);
+
+  let record = await registry.get(param.recordId);
+  record.isVerify = param.isVerify;
+
+  await registry.update(record);
  }
 
 

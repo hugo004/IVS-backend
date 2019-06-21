@@ -12,14 +12,13 @@ module.exports = {
     //conenct to admin networkd
     await Network.connect();
     let connection = Network.getConnection();
-    let pRegistry = await connection.getParticipantRegistry(`${NS}.User`);
+    // let pRegistry = await connection.getParticipantRegistry(`${NS}.${type}`);
 
-    //check user is exit
-    let user = await pRegistry.get(userId);
-    if (!user) throw new Error('User not exit');
+    // //check user is exit
+    // let user = await pRegistry.get(userId);
+    // if (!user) throw new Error('User not exit');
+
     
-    //check password is correct
-
     //get user networkd id card
     let iRegistry = await connection.getIdentityRegistry();
     let identities = await iRegistry.getAll();
@@ -51,10 +50,16 @@ module.exports = {
     //check password is correct
     let identify = filtered[0];
     let userId = identify.participant.getIdentifier();
-    let pRegistry = await connection.getParticipantRegistry(`${NS}.User`);
+    let pRegistry = await connection.getParticipantRegistry(`${NS}.${identify.participant.$type}`);
     let userInfo = await pRegistry.get(userId);
 
-    const {password} = userInfo.baseInfo;
+    let password;
+    if (userInfo.baseInfo) {
+      password = userInfo.baseInfo.password;
+    }
+    else {
+      password = userInfo.password;
+    }
     if (password != pswd) throw new Error ('Password no correct');
 
     await Network.disconnect();
@@ -94,11 +99,11 @@ module.exports = {
     return statusCode;
   },
 
-  GetUserInfo: async function(userId) {
+  GetUserInfo: async function(userId, type='User') {
     //conenct to admin networkd
     await Network.connect();
     let connection = Network.getConnection();
-    let pRegistry = await connection.getParticipantRegistry(`${NS}.User`);
+    let pRegistry = await connection.getParticipantRegistry(`${NS}.${type}`);
 
     //check user is exit
     let user = await pRegistry.get(userId);

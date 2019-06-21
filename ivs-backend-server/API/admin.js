@@ -693,4 +693,36 @@ module.exports = function(app, jwt, NS, userCardPool) {
     }
   })
 
+
+  /**
+   * use to rest network registry id
+   */
+  app.post('/api/admin/getNetworkIdentity', async function (req, res) {
+    try {
+      //conenct to admin networkd
+      await AdminCard.connect();
+      let connection = AdminCard.getConnection();
+
+      //get user networkd id card
+      let iRegistry = await connection.getIdentityRegistry();
+      let identities = await iRegistry.getAll();
+
+      //filter out admin card
+      let filtered = identities.filter(e => e.name != 'admin');
+
+      
+      await AdminCard.disconnect();
+
+      res.status(200).json({
+        result: filtered
+      });
+
+    }
+    catch (error) {
+      res.status(500).json({
+        error: error.toString()
+      });
+    }
+  })
+
 }
