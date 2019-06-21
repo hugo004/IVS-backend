@@ -31,13 +31,13 @@ rule EverybodyCanSubmitTransactions {
   action: ALLOW
 }
 
-// rule EveryBodyCanReadUserProfile {
-//   description: "Allow all participants to read user's profile"
-//   participant: "org.example.ivsnetwork.User"
-//   operation: READ
-//   resource: "org.example.ivsnetwork.User"
-//   action: ALLOW
-// }
+rule EveryBodyCanReadUserProfile {
+  description: "Allow all participants to read user's profile"
+  participant: "org.example.ivsnetwork.*"
+  operation: READ
+  resource: "org.example.ivsnetwork.User"
+  action: ALLOW
+}
 
 
 
@@ -159,13 +159,13 @@ rule VerifierCanVerifyRecord {
   action: ALLOW
 }
 
-rule VerifierCanReadUser {
-  description: "Verifier can access user info"
-  participant: "org.example.ivsnetwork.Verifier"
-  operation: READ
-  resource: "org.example.ivsnetwork.User"
-  action: ALLOW
-}
+// rule VerifierCanReadUser {
+//   description: "Verifier can access user info"
+//   participant: "org.example.ivsnetwork.Verifier"
+//   operation: READ
+//   resource: "org.example.ivsnetwork.User"
+//   action: ALLOW
+// }
 
 
 rule UserCanReadVerifier {

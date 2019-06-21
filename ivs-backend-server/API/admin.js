@@ -87,54 +87,6 @@ module.exports = function(app, jwt, NS, userCardPool) {
     }
   })
 
-    /**
-   * @param {userId, name, owner, members[]} req
-   */
-  app.post('/api/admin/createChannel',  async function(req, res) {
-    try {
-      const {authorization} = req.headers;
-      const {
-        userId,
-        userName
-      } = Helper.GetTokenInfo(jwt, authorization, secret);
-
-      let {
-        name,
-        members
-      } = req.body;
-
-      //get defined participant from network
-      let definition = await AdminCard.connect();
-      let connection = AdminCard.getConnection();
-
-      //add owner id as part of channel member
-      members.push(userId);
-
-
-      //submit transaction
-      let factory = definition.getFactory();
-      let transaction = factory.newTransaction(NS, 'CreateChannel');
-      transaction.name = name;
-      transaction.members = members;
-      transaction.owner = userName;
-      transaction.ownerId = userId;
-
-      await connection.submitTransaction(transaction);
-
-      //dissconnect network
-      await AdminCard.disconnect();
-
-      res.status(200).json({
-        result: 'Create success'
-      });
-    }
-    catch (error) {
-      let statusCode = Helper.ErrorCode(error);
-      res.status(statusCode).json({
-        error: error.toString()
-      });
-    }
-  })
 
 
   /**
@@ -190,6 +142,8 @@ module.exports = function(app, jwt, NS, userCardPool) {
           //put asset list to relative category
           assetName = assetName.replace(`${NS}.`, ''); //remove network namespace
           let assets = await registry.getAll();
+          //filter out the verified record
+          assets = assets.filter(e => e.isVerify == true);
 
           //filter out the asset, makesure it is belong owner
           //authorized user also can get the asset
@@ -624,41 +578,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
     }
   })
 
-  /**
-   * @param {userId}
-   * return user list in network, exclude the current user
-   */
-  app.get('/api/admin/getUsers', async function(req, res) {
-    try {
-      console.log('getUser api start');
 
-      const {authorization} = req.headers;
-      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret)
-
-      await AdminCard.connect();
-
-      let connection = AdminCard.getConnection();
-      let registry = await connection.getParticipantRegistry(`${NS}.User`);
-      let allUsers = await registry.getAll();
-
-      //filter out me from user list
-      let filtered = allUsers.filter(e => e.userId != userId);
-
-      await AdminCard.disconnect();
-
-      res.status(200).json({
-        result: filtered
-      });
-
-      console.log('getUser api finish');
-      
-    }
-    catch (error) {
-      res.status(500).json({
-        error: error
-      });
-    }
-  })
 
   /**
    * @param {assetName, userId} req
