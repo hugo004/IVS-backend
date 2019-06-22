@@ -190,6 +190,19 @@ module.exports = function(app, jwt, NS, userCardPool) {
         filtered = filtered.filter(e => filterStatus.includes(e.status));
       }
 
+      //re-order base on time in desc order
+      filtered = filtered.sort((a,b) => {
+        let keyA = a.createTime.getTime();
+        let keyB = b.createTime.getTime();
+
+        if  (keyA < keyB) return -1;
+        if (keyA > keyB) return 1;
+
+        return 0;
+      }).reverse();
+      
+
+
       //return my request list
       res.status(200).json({
         result: filtered
@@ -731,6 +744,16 @@ module.exports = function(app, jwt, NS, userCardPool) {
       let connection = userCard.getConnection();
       let historian = await connection.getHistorian();
       let history = await historian.getAll();
+
+      history = history.sort((a,b) => {
+        let keyA = a.transactionTimestamp.getTime();
+        let keyB = b.transactionTimestamp.getTime();
+
+        if (keyA < keyB) return -1;
+        if (keyA > keyB) return 1;
+
+        return 0;
+      }).reverse();
 
       res.status(200).json({
         result: history
