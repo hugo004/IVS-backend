@@ -101,19 +101,74 @@ module.exports = function(app, jwt, NS, userCardPool) {
       Helper.GetTokenInfo(jwt, authorization, secret);
 
 
-      //get all defined asset from the network
-      await AdminCard.connect();
-      let connection = AdminCard.getConnection();
-      const allAsset = await connection.getAllAssetRegistries();
+      //decrepted
+      // //get all defined asset from the network
+      // await AdminCard.connect();
+      // let connection = AdminCard.getConnection();
+      // const allAsset = await connection.getAllAssetRegistries();
 
-      //get defined asset name
-      let allAssetName = [];
-      allAsset.forEach(element => {
-          allAssetName.push(element.id);
-      });
+      // //get defined asset name
+      // let allAssetName = [];
+      // allAsset.forEach(element => {
+      //     allAssetName.push(element.id);
+      // });
 
 
-      await AdminCard.disconnect();
+      // await AdminCard.disconnect();
+
+      // //get members id
+      // let {memberIds} = req.query;
+      
+      // //if string type mean no array, convert to array
+      // if (typeof memberIds == 'string') {
+      //   memberIds = [memberIds];
+      // }
+
+      // let membersAsset = {};
+      // for (let m=0; m<memberIds.length; m++) {
+      //   let memberId = memberIds[m];
+
+      //   //connect member's network
+      //   let memberCard = await Helper.GetUserCard(memberId);
+      //   await memberCard.connect();
+
+      //   //get member all asset of this category
+      //   connection = memberCard.getConnection();
+
+      //   let myAsset = {};
+      //   for (let i=0; i<allAssetName.length; i++) {
+      //     let assetName = allAssetName[i];
+      //     let registry = await connection.getAssetRegistry(assetName);
+
+      //     //put asset list to relative category
+      //     assetName = assetName.replace(`${NS}.`, ''); //remove network namespace
+      //     let assets = await registry.getAll();
+      //     //filter out the verified record
+      //     assets = assets.filter(e => e.isVerify == true);
+
+      //     //filter out the asset, makesure it is belong owner
+      //     //authorized user also can get the asset
+      //     assets.forEach(e => {
+      //       if (e.authorized) {
+      //         let authorizedList = e.authorized || [];
+
+      //         //if memmber access the by authorized by another user, remove it
+      //         //to retrieve the actual asset of member
+      //         if (authorizedList.includes(memberId)) {
+      //           let index = assets.indexOf(e);
+      //           if (index > -1) {
+      //             assets.splice(index, 1);
+      //           }
+      //         }
+      //       }
+      //     });
+
+      //     myAsset[assetName] = assets;
+      //   }
+
+      //   await memberCard.disconnect();
+      //   membersAsset[memberId] = myAsset;
+      // }
 
       //get members id
       let {memberIds} = req.query;
@@ -132,43 +187,31 @@ module.exports = function(app, jwt, NS, userCardPool) {
         await memberCard.connect();
 
         //get member all asset of this category
-        connection = memberCard.getConnection();
+        let connection = memberCard.getConnection();
 
         let myAsset = {};
-        for (let i=0; i<allAssetName.length; i++) {
-          let assetName = allAssetName[i];
-          let registry = await connection.getAssetRegistry(assetName);
+        let registry = await connection.getAssetRegistry(`${NS}.Record`);
+        let records = await registry.getAll();
 
-          //put asset list to relative category
-          assetName = assetName.replace(`${NS}.`, ''); //remove network namespace
-          let assets = await registry.getAll();
-          //filter out the verified record
-          assets = assets.filter(e => e.isVerify == true);
+        //filter out the verified record
+        records = records.filter(e => e.isVerify == true);
 
-          //filter out the asset, makesure it is belong owner
-          //authorized user also can get the asset
-          assets.forEach(e => {
-            if (e.authorized) {
-              let authorizedList = e.authorized || [];
+        //current support record type
+        let recordType = Config.recordType;
 
-              //if memmber access the by authorized by another user, remove it
-              //to retrieve the actual asset of member
-              if (authorizedList.includes(memberId)) {
-                let index = assets.indexOf(e);
-                if (index > -1) {
-                  assets.splice(index, 1);
-                }
-              }
-            }
-          });
-
-          myAsset[assetName] = assets;
-        }
+        //classfy record into response record type
+        recordType.forEach(type => {
+          let filtered = records.filter(record => record.recordType == type);
+          
+          //save no empty list only
+          if (filtered.length > 0) {
+            myAsset[type] = filtered
+          }
+        });
 
         await memberCard.disconnect();
         membersAsset[memberId] = myAsset;
       }
-
 
       res.status(200).json({
         result: membersAsset

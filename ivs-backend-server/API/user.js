@@ -763,7 +763,6 @@ module.exports = function(app, jwt, NS, userCardPool) {
       let registry = await connection.getParticipantRegistry(`${NS}.User`);
       let me = await registry.get(userId);
 
-
       //get record asset
       registry = await connection.getAssetRegistry(`${NS}.Record`);
       let recordsId = me.records || [];
@@ -778,9 +777,20 @@ module.exports = function(app, jwt, NS, userCardPool) {
           records.push(record);
       }
 
-      let userInfo = {
-        Record: records
-      };
+      let userInfo = {};
+
+      //current support record type
+      let recordType = Config.recordType;
+
+      //classfy record into response record type
+      recordType.forEach(type => {
+        let filtered = records.filter(record => record.recordType == type);
+        
+        //save no empty list only
+        if (filtered.length > 0) {
+          userInfo[type] = filtered
+        }
+      });
 
 
       res.status(200).json({
