@@ -30,22 +30,27 @@ module.exports = function(app, jwt, NS, userCardPool) {
    */
   app.get('/api/admin/getAllRegistryAsset', async function(req, res) {
     try {
-      //get all defined asset from the network
-      await AdminCard.connect();
-      const connection = AdminCard.getConnection();
-      const allAsset = await connection.getAllAssetRegistries();
+      //descrypted
+      // //get all defined asset from the network
+      // await AdminCard.connect();
+      // const connection = AdminCard.getConnection();
+      // const allAsset = await connection.getAllAssetRegistries();
 
-      //get defined asset name
-      let allAssetName = [];
-      allAsset.forEach(element => {
-          allAssetName.push(element.id);
-      });
+      // //get defined asset name
+      // let allAssetName = [];
+      // allAsset.forEach(element => {
+      //     allAssetName.push(element.id);
+      // });
 
-      await AdminCard.disconnect();
+      // await AdminCard.disconnect();
 
-      //return the result
+      // //return the result
+      // res.status(200).json({
+      //   result: allAssetName
+      // });
+
       res.status(200).json({
-        result: allAssetName
+        result: Config.recordType
       });
 
     }
@@ -638,7 +643,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
       let assets = await registry.getAll();
 
 
-      let myAsset = assets.filter(e => e.owner == userId);
+      let myAsset = assets.filter(e => e.owner == userId && e.isVerify == true);
 
       await AdminCard.disconnect();
 

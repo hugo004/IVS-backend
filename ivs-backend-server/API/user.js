@@ -387,7 +387,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
       let connection = Network.getConnection();
 
       //check requested asset exist
-      let aRegistry = await connection.getAssetRegistry(`${NS}.${assetName}`);
+      let aRegistry = await connection.getAssetRegistry(`${NS}.Record`);
       let requestList = [];
 
       for (let i=0; i<assetId.length; i++) {
@@ -424,7 +424,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
         let transaction = factory.newTransaction(NS, 'RequestAccessAsset');
         transaction.receiverId = receiverId;
         transaction.receiverName = receiverName;
-        transaction.assetName = assetName;
+        transaction.assetName = 'Record';
         transaction.assetId = assetId;
         transaction.eventName = eventName;  
 
@@ -485,7 +485,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
       //fire transaction
       let factory = definition.getFactory();
       let transaction = factory.newTransaction(NS, 'RevokeAccessSpecifyRecord');
-      transaction.assetName = assetName;
+      transaction.assetName = 'Record';
       transaction.assetId = assetIds;
       transaction.userId = revokeUser;
 
