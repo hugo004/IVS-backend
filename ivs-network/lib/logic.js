@@ -418,7 +418,7 @@ async function RequestAccessAsset(request) {
   requestAsset.requested = request.assetId;
   requestAsset.createTime = request.timestamp;
   requestAsset.assetName = request.assetName;
-  requestAsset.requestType = 'ASSET';
+  requestAsset.requestType = request.requestType;
   
   if (request.status) {
     requestAsset.status = request.status;

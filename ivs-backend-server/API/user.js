@@ -965,6 +965,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
       transaction.eventName = 'Record Verification';  
       transaction.remarks = 'Your record was verified';
       transaction.status = 'OTHER';
+      transaction.requestType = 'OTHER';
 
       await connection.submitTransaction(transaction);
 

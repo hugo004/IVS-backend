@@ -146,6 +146,7 @@ enum StatusType {
 enum RequestType {
   o ASSET
   o CHANNEL
+  o OTHER
 }
 
 asset Request identified by requestId {
@@ -178,6 +179,7 @@ transaction RequestAccessAsset extends RequestTransaction {
   o String remarks optional
   o String assetName
   o String [] assetId
+  o String requestType  default='ASSET'
 }
 
 
