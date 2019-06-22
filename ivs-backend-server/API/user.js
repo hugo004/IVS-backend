@@ -763,65 +763,6 @@ module.exports = function(app, jwt, NS, userCardPool) {
       let registry = await connection.getParticipantRegistry(`${NS}.User`);
       let me = await registry.get(userId);
 
-      //decrepted
-      // //get education asset
-      // registry = await connection.getAssetRegistry(`${NS}.Education`);
-      // let educationsId = me.educations || [];
-      // let educations = [];
-
-      // for (let i=0; i<educationsId.length; i++) {
-      //   let id = educationsId[i];
-      //   let education = await registry.get(id);
-
-      //   educations.push(education);
-      // }
-
-      // //get work exp asset
-      // registry = await connection.getAssetRegistry(`${NS}.WorkExp`);
-      // let workExpsId = me.workExps || [];
-      // let workExps = [];
-
-      // for (let i=0; i<workExpsId.length; i++) {
-      //   let id = workExpsId[i];
-      //   let workExp = await registry.get(id);
-
-      //   workExps.push(workExp);
-      // }
-
-      // //get vonlunteer record asset
-      // registry = await connection.getAssetRegistry(`${NS}.VolunteerRecord`);
-      // let volunteerRecordId = me.volunteerRecord || [];
-      // let volRecords = [];
-      
-      // for (let i=0; i<volunteerRecordId.length; i++) {
-      //   let id = volunteerRecordId[i];
-      //   let record = await registry.get(id);
-
-      //   volRecords.push(record);
-      // }
-
-      // //get record asset
-      // registry = await connection.getAssetRegistry(`${NS}.Record`);
-      // let recordsId = me.records || [];
-      // let records = [];
-      
-      // for (let i=0; i<recordsId.length; i++) {
-      //   let id = recordsId[i];
-      //   let record = await registry.get(id);
-
-      //   records.push(record);
-      // }
-
-
-      
-
-      // let userInfo = {
-      //   // info: me.baseInfo,
-      //   Education: educations,
-      //   WorkExp: workExps,
-      //   VolunteerRecord: volRecords,
-      //   Record: records
-      // };
 
       //get record asset
       registry = await connection.getAssetRegistry(`${NS}.Record`);
@@ -874,7 +815,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
       }
 
 
-      let {recordType} = req.body;
+      let {recordType, relateVerifier} = req.body;
 
       //get the file
       let file = req.files.records;
@@ -893,6 +834,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
       transaction.encrypted = base64Str;
       transaction.fileType = mimetype;
       transaction.recordType = recordType;
+      transaction.relateVerifier = relateVerifier;
 
       await connection.submitTransaction(transaction);
 
@@ -1076,7 +1018,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
     /**
    * @param {userId, name, owner, members[]} req
    */
-  app.post('/api/admin/createChannel',  async function(req, res) {
+  app.post('/api/createChannel',  async function(req, res) {
     try {
       const {authorization} = req.headers;
       const {
@@ -1124,6 +1066,46 @@ module.exports = function(app, jwt, NS, userCardPool) {
       res.status(statusCode).json({
         error: error.toString()
       });
+    }
+  })
+
+  /**
+   * 
+   * @param {verifierType}
+   */
+  app.get('/api/getVerifierList', async function(req, res) {
+    try {
+      console.log('getVerifierList api start');
+
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
+
+      const {verifierType} = req.query;
+      let connection = userCard.getConnection();
+      let registry = await connection.getParticipantRegistry(`${NS}.Verifier`);
+      let verifierList = await registry.getAll();
+
+      //get filtered verifier
+      let filtered = verifierList.filter(e => e.type == verifierType);
+
+      res.status(200).json({
+        result: filtered
+      });
+
+      console.log('getVerifierList api finish')
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      })
     }
   })
 

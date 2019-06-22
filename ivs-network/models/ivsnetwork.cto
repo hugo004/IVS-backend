@@ -115,6 +115,7 @@ asset Record extends BaseAsset {
   o String fileType
   o String encrypted
   o VerifierType recordType default = 'Other'
+  o String relateVerifier optional
 }
 
 transaction CreateRecord {
@@ -122,6 +123,7 @@ transaction CreateRecord {
   o String fileType
   o String encrypted
   o VerifierType recordType
+  o String relateVerifier
 }
 
 transaction GetAssetById {

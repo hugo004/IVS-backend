@@ -56,7 +56,10 @@ async function CreateRecord(record) {
   let factory = getFactory();
   let newRecordId = UIDGenerator('r');
 
- 
+  let vRegistry = await getParticipantRegistry(`${NS}.Verifier`);
+  let verifier = await vRegistry.get(record.relateVerifier);
+  if (!verifier) throw new Error ('Verifier not exit');
+
   //create record
   let newRecord = factory.newResource(NS, 'Record', newRecordId);
   newRecord.fileType = record.fileType;
@@ -64,6 +67,7 @@ async function CreateRecord(record) {
   newRecord.encrypted = record.encrypted;
   newRecord.name = record.name;
   newRecord.recordType = record.recordType;
+  newRecord.relateVerifier = record.relateVerifier;
 
   //get current user, and the record own by current user
   let currentUser = getCurrentParticipant();
