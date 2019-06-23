@@ -937,6 +937,16 @@ module.exports = function(app, jwt, NS, userCardPool) {
         });
       }
 
+      recordList = recordList.sort((a,b) => {
+        let keyA = a.creatTime.getTime();
+        let keyB = b.creatTime.getTime();
+
+        if (keyA < keyB) return -1;
+        if (keyA > keyB) return 1;
+
+        return 0;
+      }).reverse();
+
       res.status(200).json({
         result: recordList
       });
