@@ -31,23 +31,15 @@ rule EverybodyCanSubmitTransactions {
   action: ALLOW
 }
 
-// rule EveryBodyCanReadUserProfile {
-//   description: "Allow all participants to read user's profile"
-//   participant: "org.example.ivsnetwork.User"
-//   operation: READ
-//   resource: "org.example.ivsnetwork.User"
-//   action: ALLOW
-// }
+rule EveryBodyCanReadUserProfile {
+  description: "Allow all participants to read user's profile"
+  participant: "org.example.ivsnetwork.*"
+  operation: READ
+  resource: "org.example.ivsnetwork.User"
+  action: ALLOW
+}
 
 
-// rule OwnerHasFullAccessToTheirAssets {
-//     description: "Allow all participants full access to their assets"
-//     participant(p): "ivsnetwork.User"
-//     operation: ALL
-//     resource(r): "ivsnetwork.SampleAsset"
-//     condition: (r.owner.getIdentifier() === p.getIdentifier())
-//     action: ALLOW
-// }
 
 rule SystemACL {
   description:  "System ACL to permit all access"
@@ -78,7 +70,7 @@ rule OnlyRecordOwnerFullControll {
   participant(p): "org.example.ivsnetwork.User"
   operation: ALL
   resource(r): "org.example.ivsnetwork.*"
-  condition: (r.owner.getIdentifier() == p.getIdentifier())
+  condition: (r.owner == p.getIdentifier())
   action: ALLOW
 }
 
@@ -125,7 +117,7 @@ rule ChannelMemberCanShareAsset {
   participant(p): "org.example.ivsnetwork.User"
   operation: ALL
   resource(r): "org.example.ivsnetwork.*"
-  condition: (p.channels && p.channels.indexOf(r.owner.getIdentifier()) > -1)
+  condition: (p.channels && p.channels.indexOf(r.owner) > -1)
   action: ALLOW
 }
 
@@ -139,11 +131,56 @@ rule OwnerCanReadHistorian {
   action: ALLOW
 }
 
-// prevent users from seeing historian records
-rule hidehistorianAccess{
-  description: "Deny access to Historian"
-  participant: "org.hyperledger.composer.system.Participant"
+// // prevent users from seeing historian records
+// rule hidehistorianAccess{
+//   description: "Deny access to Historian"
+//   participant: "org.hyperledger.composer.system.Participant"
+//   operation: READ
+//   resource: "org.hyperledger.composer.system.HistorianRecord"
+//   action: DENY
+// }
+
+
+// rule OnlyVerifiedRecordOnChain {
+//   description: "Only verified record displayed to user"
+//   participant(p): "org.example.ivsnetwork.User"
+//   operation: ALL
+//   resource(r): "org.example.ivsnetwork.*"
+//   condition: (r.owner == p.getIdentifier() && r.isVerify)
+//   action: ALLOW
+// }
+
+rule EveryBodyCanReadVerifier {
+  description: "Allow all participants to read verifier"
+  participant: "org.example.ivsnetwork.*"
   operation: READ
-  resource: "org.hyperledger.composer.system.HistorianRecord"
-  action: DENY
+  resource: "org.example.ivsnetwork.Verifier"
+  action: ALLOW
 }
+
+rule VerifierCanVerifyRecord {
+  description: "Verifier can get response type of record, it response the verifier type and approval the record before the record on the chain"
+  participant(p): "org.example.ivsnetwork.Verifier"
+  operation: READ, UPDATE
+  resource(r): "org.example.ivsnetwork.Record"
+  condition: (r.recordType == p.type && p.getIdentifier() == r.relateVerifier)
+  action: ALLOW
+}
+
+// rule VerifierCanReadUser {
+//   description: "Verifier can access user info"
+//   participant: "org.example.ivsnetwork.Verifier"
+//   operation: READ
+//   resource: "org.example.ivsnetwork.User"
+//   action: ALLOW
+// }
+
+
+rule UserCanReadVerifier {
+  description: "User can access verifier info"
+  participant: "org.example.ivsnetwork.User"
+  operation: READ
+  resource: "org.example.ivsnetwork.Verifier"
+  action: ALLOW
+}
+

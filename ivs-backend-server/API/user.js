@@ -35,8 +35,53 @@ module.exports = function(app, jwt, NS, userCardPool) {
     catch (error) {
       res.status(401).json({error: error.toString()});
     }
-})
+  })
 
+
+    /**
+   * @param {userName, password}
+   */
+  app.post('/api/verifierLogin', async function (req, res) {
+    try {
+
+      const {
+        userName,
+        password
+      } = req.body;
+
+      let userId = await Helper.GetUserId(userName, password);
+      let userCard = await Helper.GetUserCard(userId);
+      if (!userCard) throw new Error('user name or password not correct');
+
+      let userInfo = await Helper.GetUserInfo(userId, 'Verifier');
+
+      //generate token
+      let payload = {
+        userId: userId,
+      };
+
+      let accessToken = jwt.sign({
+        payload,
+        exp: Math.floor(Date.now() / 1000) + expireTime
+      }, secret);
+
+
+      //connect the network when user login and put logined user card into pool
+      await userCard.connect();
+      userCardPool.set(userId, userCard);
+
+      res.status(200).json({
+        result: {
+          message: 'login success',
+          accessToken: accessToken,
+          userInfo: JSON.stringify(userInfo)
+        }
+      });
+    }
+    catch (error) {
+      res.status(500).json({error: error.toString()});
+    }
+  })
 
   /**
    * @param {userName, password}
@@ -92,9 +137,11 @@ module.exports = function(app, jwt, NS, userCardPool) {
   app.get('/api/getAccessRequestList', async function(req, res) {
     try {
 
+      console.log('GetAccessRequestList api start');
+
       const {authorization} = req.headers;
       const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
-      const {status} = req.query;
+      let {status} = req.query;
 
       let userCard = userCardPool.get(userId);
       if (!userCard) {
@@ -105,33 +152,63 @@ module.exports = function(app, jwt, NS, userCardPool) {
 
       let connection = userCard.getConnection();
 
-
-      //check new status is within status type
-      let statusTypes = ['UNDETERMINED', 'ACCEPT', 'DENY'];
-      let filterStatus = 'ALL';
-
-      if (statusTypes.includes(status)) {
-        filterStatus = status;
+      //if string type mean no array, convert to array
+      if (typeof status == 'string') {
+        status = [status];
       }
 
+      //check new status is within status type
+      let statusTypes = ['UNDETERMINED', 'ACCEPT', 'DENY', 'REVOKED', 'GRANT', 'OTHER'];
+      let filterStatus = [];
+
+      //add filter status
+      status.forEach(e => {
+        if (statusTypes.includes(e)) {
+          filterStatus.push(e);
+        }
+      });
+
+      //default all
+      if (filterStatus.length < 1) {
+        filterStatus = ['ALL'];
+      }
+
+      console.log(filterStatus);
       //get received request
       let rRegistry = await connection.getAssetRegistry(`${NS}.Request`);
 
       //this list would containt my sent request and received request
       let requestList = await rRegistry.getAll();
 
+
       //filter out the request list if receiver is me
       let filtered = requestList.filter(e => e.receiverId == userId);
 
+
       //filter out the request list by status (UNDETERMINED / DENY / ACCEPT), default return all status
-      if (!(filterStatus == 'ALL')) {
-        filtered = filtered.filter(e => e.status == filterStatus);
+      if (!filterStatus.includes('ALL')) {
+        filtered = filtered.filter(e => filterStatus.includes(e.status));
       }
+
+      //re-order base on time in desc order
+      filtered = filtered.sort((a,b) => {
+        let keyA = a.createTime.getTime();
+        let keyB = b.createTime.getTime();
+
+        if  (keyA < keyB) return -1;
+        if (keyA > keyB) return 1;
+
+        return 0;
+      }).reverse();
+      
+
 
       //return my request list
       res.status(200).json({
         result: filtered
       });
+
+      console.log('GetAccessRequestList api finish');
 
     }
     catch (error) {
@@ -145,18 +222,40 @@ module.exports = function(app, jwt, NS, userCardPool) {
 
   /**
    * return the list of request user had sent
-   * @param {userId} 
+   * @param {userId, status} 
    */
   app.get('/api/getSentRequestList', async function(req, res) {
     try {
       const {authorization} = req.headers;
       const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+      let {status} = req.query;
 
       let userCard = userCardPool.get(userId);
       if (!userCard) {
         res.status(401).json({
           error: 'user card not found, please login again'
         });
+      }
+
+      //if string type mean no array, convert to array
+      if (typeof status == 'string') {
+        status = [status];
+      }
+
+      //check new status is within status type
+      let statusTypes = ['UNDETERMINED', 'ACCEPT', 'DENY', 'REVOKED', 'GRANT', 'OTHER'];
+      let filterStatus = [];
+
+      //add filter status
+      status.forEach(e => {
+        if (statusTypes.includes(e)) {
+          filterStatus.push(e);
+        }
+      });
+
+      //default all
+      if (filterStatus.length < 1) {
+        filterStatus = ['ALL'];
       }
 
       let connection = userCard.getConnection();
@@ -170,6 +269,9 @@ module.exports = function(app, jwt, NS, userCardPool) {
       //filter out the request list if receiver is me
       let filtered = requestList.filter(e => e.senderId == userId);
       
+      if (!filterStatus.includes('ALL')) {
+        filtered = filtered.filter(e => filterStatus.includes(e.status));
+      }
 
       res.status(200).json({
         result: filtered
@@ -257,6 +359,8 @@ module.exports = function(app, jwt, NS, userCardPool) {
   app.post('/api/requestAccessAsset', async function(req, res) {
     try {
 
+      console.log('requestAccessAsset api start');
+
       const {authorization} = req.headers;
       const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
       //get request param
@@ -266,7 +370,8 @@ module.exports = function(app, jwt, NS, userCardPool) {
         assetName,
         assetId,
         eventName,
-        remarks
+        remarks,
+        status
       } = req.body;
 
       let userCard = userCardPool.get(userId);
@@ -282,17 +387,22 @@ module.exports = function(app, jwt, NS, userCardPool) {
       let connection = Network.getConnection();
 
       //check requested asset exist
-      let aRegistry = await connection.getAssetRegistry(`${NS}.${assetName}`);
+      let aRegistry = await connection.getAssetRegistry(`${NS}.Record`);
       let requestList = [];
 
       for (let i=0; i<assetId.length; i++) {
         let id = assetId[i];
         let targetAsset = await aRegistry.get(id);
-
-        //check the requested asset is own by receiver
-        let ownerId  = targetAsset.owner.getIdentifier();
-        if (!(ownerId == receiverId)) throw new Error (`Asset Id: ${targetAsset.getIdentifier()} not own by receiver`);
-
+        
+        let ownerId  = targetAsset.owner;
+        //if grant record action
+        if (status == 'GRANT') {
+          if (!(ownerId == userId)) throw new Error (`Asset Id: ${targetAsset.getIdentifier()} not own by you`);
+        }
+        else {
+          //check the requested asset is own by receiver
+          if (!(ownerId == receiverId)) throw new Error (`Asset Id: ${targetAsset.getIdentifier()} not own by receiver`);
+        }
         requestList.push(id);
       };
 
@@ -305,23 +415,36 @@ module.exports = function(app, jwt, NS, userCardPool) {
 
       //new transaction
       let factory = definition.getFactory();
-      let transaction = factory.newTransaction(NS, 'RequestAccessAsset');
-      transaction.receiverId = receiverId;
-      transaction.receiverName = receiverName;
-      transaction.assetName = assetName;
-      transaction.assetId = requestList;
-      transaction.eventName = eventName;  
 
-      if (remarks) {
-        transaction.remarks = remarks;
-      }
+      //divie to single request, if requested asset more than one
+      // for the revoke action purpose
+      for (let i=0; i<requestList.length; i++) {
+        let assetId = [requestList[i]];
 
-      //submit request access asset transaction
-      await connection.submitTransaction(transaction);
+        let transaction = factory.newTransaction(NS, 'RequestAccessAsset');
+        transaction.receiverId = receiverId;
+        transaction.receiverName = receiverName;
+        transaction.assetName = 'Record';
+        transaction.assetId = assetId;
+        transaction.eventName = eventName;  
+
+        if (remarks) {
+          transaction.remarks = remarks;
+        }
+
+        if (status) {
+          transaction.status = status;
+        }
+
+        //submit request access asset transaction
+        await connection.submitTransaction(transaction);
+    }
     
       res.status(200).json({
         result: 'Reqeust sent'
       });
+
+      console.log('requestAccessAsset api finish');
 
     }
     catch (error) {
@@ -332,6 +455,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
     }
   })
 
+  
   /**
    * @param {userId, requestId, revokeUser, assetName, assetIds[]} req
    */
@@ -361,7 +485,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
       //fire transaction
       let factory = definition.getFactory();
       let transaction = factory.newTransaction(NS, 'RevokeAccessSpecifyRecord');
-      transaction.assetName = assetName;
+      transaction.assetName = 'Record';
       transaction.assetId = assetIds;
       transaction.userId = revokeUser;
 
@@ -621,6 +745,16 @@ module.exports = function(app, jwt, NS, userCardPool) {
       let historian = await connection.getHistorian();
       let history = await historian.getAll();
 
+      history = history.sort((a,b) => {
+        let keyA = a.transactionTimestamp.getTime();
+        let keyB = b.transactionTimestamp.getTime();
+
+        if (keyA < keyB) return -1;
+        if (keyA > keyB) return 1;
+
+        return 0;
+      }).reverse();
+
       res.status(200).json({
         result: history
       });
@@ -652,48 +786,35 @@ module.exports = function(app, jwt, NS, userCardPool) {
       let registry = await connection.getParticipantRegistry(`${NS}.User`);
       let me = await registry.get(userId);
 
-      //get education asset
-      registry = await connection.getAssetRegistry(`${NS}.Education`);
-      let educationsId = me.educations || [];
-      let educations = [];
-
-      for (let i=0; i<educationsId.length; i++) {
-        let id = educationsId[i];
-        let education = await registry.get(id);
-
-        educations.push(education);
-      }
-
-      //get work exp asset
-      registry = await connection.getAssetRegistry(`${NS}.WorkExp`);
-      let workExpsId = me.workExps || [];
-      let workExps = [];
-
-      for (let i=0; i<workExpsId.length; i++) {
-        let id = workExpsId[i];
-        let workExp = await registry.get(id);
-
-        workExps.push(workExp);
-      }
-
-      //get vonlunteer record asset
-      registry = await connection.getAssetRegistry(`${NS}.VolunteerRecord`);
-      let volunteerRecordId = me.volunteerRecord || [];
+      //get record asset
+      registry = await connection.getAssetRegistry(`${NS}.Record`);
+      let recordsId = me.records || [];
       let records = [];
       
-      for (let i=0; i<volunteerRecordId.length; i++) {
-        let id = volunteerRecordId[i];
+      for (let i=0; i<recordsId.length; i++) {
+        let id = recordsId[i];
         let record = await registry.get(id);
 
-        records.push(record);
+        //only verify record
+        if (record.isVerify)
+          records.push(record);
       }
 
-      let userInfo = {
-        // info: me.baseInfo,
-        Education: educations,
-        WorkExp: workExps,
-        VolunteerRecord: records
-      };
+      let userInfo = {};
+
+      //current support record type
+      let recordType = Config.recordType;
+
+      //classfy record into response record type
+      recordType.forEach(type => {
+        let filtered = records.filter(record => record.recordType == type);
+        
+        //save no empty list only
+        if (filtered.length > 0) {
+          userInfo[type] = filtered
+        }
+      });
+
 
       res.status(200).json({
         result: userInfo
@@ -706,6 +827,329 @@ module.exports = function(app, jwt, NS, userCardPool) {
       res.status(statusCode).json({
         error: error.toString()
       });
+    }
+  }),
+
+  /**
+   * @param {records, name} req
+   */
+  app.post('/api/UploadRecordFiles', async function(req, res) {
+    try {
+      console.log('uploadRecordFile api start');
+
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
+
+
+      let {recordType, relateVerifier} = req.body;
+
+      //get the file
+      let file = req.files.records;
+
+      //upload the base64 string to network
+      let {data, mimetype, name} = file;
+      let base64Str =  Helper.getBase64(data);
+
+      //submit transaction
+      let definition = userCard.getDefinition();
+      let connection = userCard.getConnection();
+
+      let factory = definition.getFactory();
+      let transaction = factory.newTransaction(NS, 'CreateRecord');
+      transaction.name = name;
+      transaction.encrypted = base64Str;
+      transaction.fileType = mimetype;
+      transaction.recordType = recordType;
+      transaction.relateVerifier = relateVerifier;
+
+      await connection.submitTransaction(transaction);
+
+      res.status(200).json({
+        result: 'success'
+      });
+
+      console.log('uploadRecordFile api finish');
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  })
+
+
+
+  /**
+   * @param {isVerify, verifierType} req
+   */
+  app.get('/api/getVerifyRecord', async function (req, res) {
+    try {
+      console.log('getVerifyRecord api start');
+
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
+      
+      const {isVerify} = req.query;
+
+      let connection = userCard.getConnection();
+      let registry = await connection.getAssetRegistry(`${NS}.Record`);
+
+      let records = await registry.getAll();
+
+      let filtered = records;
+
+      if (typeof isVerify == 'boolean') {
+        filtered = filtered.filter(e => e.isVerify == isVerify);
+      }
+
+      let recordList = [];
+      let pRegistry = await connection.getParticipantRegistry(`${NS}.User`);
+      
+      for (let i=0; i<filtered.length; i++) {
+        let record = filtered[i];
+        let owner = await pRegistry.get(record.owner);
+        
+        //clone the object, replace owner id with object
+        const {assetId, createTime, encrypted, fileType, isVerify, name} = record;
+        recordList.push({
+          'assetId': assetId,
+          'creatTime': createTime,
+          'encrypted': encrypted,
+          'fileType': fileType,
+          'isVerify': isVerify,
+          'name': name,
+          'owner': owner
+        });
+      }
+
+      recordList = recordList.sort((a,b) => {
+        let keyA = a.creatTime.getTime();
+        let keyB = b.creatTime.getTime();
+
+        if (keyA < keyB) return -1;
+        if (keyA > keyB) return 1;
+
+        return 0;
+      }).reverse();
+
+      res.status(200).json({
+        result: recordList
+      });
+
+      console.log('getVerifyRecord api finish');
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  })
+
+  /**
+   * @param {recordId, recordName, isVerify, ownerId, ownerName} req
+   */
+  app.put('/api/verifyRecord', async function (req, res) {
+    try {
+      console.log('verifyRecord api start');
+
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+      let {isVerify, recordId, recordName, ownerId, ownerName} = req.body;
+
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
+
+      let definition = userCard.getDefinition();
+      let connection = userCard.getConnection();
+      let factory = definition.getFactory();
+
+      let transaction = factory.newTransaction(NS, 'VerifyRecord');
+      transaction.recordId = recordId;
+      transaction.isVerify = isVerify;
+
+      await connection.submitTransaction(transaction);
+
+      //send notification
+      transaction = factory.newTransaction(NS, 'RequestAccessAsset');
+      transaction.receiverId = ownerId;
+      transaction.receiverName = ownerName;
+      transaction.assetName = recordName;
+      transaction.assetId = [recordId];
+      transaction.eventName = 'Record Verification';  
+      transaction.remarks = 'Your record was verified';
+      transaction.status = 'OTHER';
+      transaction.requestType = 'OTHER';
+
+      await connection.submitTransaction(transaction);
+
+      res.status(200).json({
+        result: 'Record Verified'
+      });
+
+      console.log('verifyRecord api finish');
+
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  })
+
+
+  /**
+   * @param {userId}
+   * return user list in network, exclude the current user
+   */
+  app.get('/api/getUsers', async function(req, res) {
+    try {
+      console.log('getUser api start');
+
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret)
+
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
+
+      let connection = userCard.getConnection();
+      let registry = await connection.getParticipantRegistry(`${NS}.User`);
+      let allUsers = await registry.getAll();
+
+      //filter out me from user list
+      let filtered = allUsers.filter(e => e.userId != userId);
+
+
+      res.status(200).json({
+        result: filtered
+      });
+
+      console.log('getUser api finish');
+      
+    }
+    catch (error) {
+      res.status(500).json({
+        error: error
+      });
+    }
+  })
+
+
+    /**
+   * @param {userId, name, owner, members[]} req
+   */
+  app.post('/api/createChannel',  async function(req, res) {
+    try {
+      const {authorization} = req.headers;
+      const {
+        userId,
+        userName
+      } = Helper.GetTokenInfo(jwt, authorization, secret);
+
+      let {
+        name,
+        members
+      } = req.body;
+
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
+
+      //get defined participant from network
+      let definition = userCard.getDefinition();
+      let connection = userCard.getConnection();
+
+      //add owner id as part of channel member
+      members.push(userId);
+
+
+      //submit transaction
+      let factory = definition.getFactory();
+      let transaction = factory.newTransaction(NS, 'CreateChannel');
+      transaction.name = name;
+      transaction.members = members;
+      transaction.owner = userName;
+      transaction.ownerId = userId;
+
+      await connection.submitTransaction(transaction);
+
+
+      res.status(200).json({
+        result: 'Create success'
+      });
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  })
+
+  /**
+   * 
+   * @param {verifierType}
+   */
+  app.get('/api/getVerifierList', async function(req, res) {
+    try {
+      console.log('getVerifierList api start');
+
+      const {authorization} = req.headers;
+      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret);
+
+      let userCard = userCardPool.get(userId);
+      if (!userCard) {
+        res.status(401).json({
+          error: 'user card not found, please login again'
+        });
+      }
+
+      const {verifierType} = req.query;
+      let connection = userCard.getConnection();
+      let registry = await connection.getParticipantRegistry(`${NS}.Verifier`);
+      let verifierList = await registry.getAll();
+
+      //get filtered verifier
+      let filtered = verifierList.filter(e => e.type == verifierType);
+
+      res.status(200).json({
+        result: filtered
+      });
+
+      console.log('getVerifierList api finish')
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      })
     }
   })
 

@@ -2,6 +2,7 @@ const host = 'localhost';
 
 module.exports = {
   'secret': 'secret',
+  'recordType': ['Education', 'WorkExp', 'Volunteer', 'Other'],
 
   connectionProfile: {
     "name": "hlfv1",

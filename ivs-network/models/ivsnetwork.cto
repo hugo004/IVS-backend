@@ -12,19 +12,26 @@ concept BaseInfo {
   o String phone optional
 }
 
+
+enum AccountType {
+  o User
+  o Verifier
+}
+
 abstract participant BaseUser identified by userId {
   o String userId
+  o AccountType accountType default = 'User'
+
+}
+
+participant User extends BaseUser {
   o BaseInfo baseInfo
   o String[] authorized optional
   o String[] channels optional
   o String[] educations optional
   o String[] workExps optional
   o String[] volunteerRecord optional
-
-}
-
-participant User extends BaseUser {
-
+  o String[] records optional
 }
 
 transaction CreateUser {
@@ -40,6 +47,7 @@ participant Channel identified by channelId {
   o String ownerId
   o DateTime createTime
   o String[] members optional
+  o String[] records optional
 }
 
 transaction CreateChannel {
@@ -63,6 +71,121 @@ transaction SendChannelInvitation {
   o String senderName
   o String[] members
   o String remarks optional
+}
+
+enum VerifierType {
+  o Education
+  o WorkExp
+  o Volunteer
+  o Other
+}
+participant Verifier identified by vid {
+  o String vid
+  o String userName
+  o String password
+  o String name
+  o AccountType accountType default = 'Verifier'
+  o VerifierType type
+}
+
+transaction VerifyRecord {
+  o String recordId
+  o Boolean isVerify
+}
+
+
+
+// CV records
+concept DateRange {
+  o DateTime from
+  o DateTime to
+}
+
+abstract asset BaseAsset identified by  assetId {
+  o String name
+  o String assetId
+  o String owner
+  o String[] authorized optional
+  o Boolean isVerify default = false
+}
+
+
+asset Record extends BaseAsset {
+  o DateTime createTime
+  o String fileType
+  o String encrypted
+  o VerifierType recordType default = 'Other'
+  o String relateVerifier optional
+}
+
+transaction CreateRecord {
+  o String name
+  o String fileType
+  o String encrypted
+  o VerifierType recordType
+  o String relateVerifier
+}
+
+transaction GetAssetById {
+  o String id
+  o String assetName
+}
+
+
+//request access user asset control
+enum StatusType {
+  o ACCEPT
+  o DENY
+  o UNDETERMINED
+  o REVOKED
+  o GRANT
+  o OTHER
+  o ALL
+}
+
+enum RequestType {
+  o ASSET
+  o CHANNEL
+  o OTHER
+}
+
+asset Request identified by requestId {
+  o String assetName
+  o String requestName
+  o String requestId
+
+  o String receiverName
+  o String receiverId
+
+  o String senderId
+  o String senderName
+
+  o DateTime createTime
+  o StatusType status default='UNDETERMINED'
+  o RequestType requestType default='ASSET'
+  o String[] requested optional //should store the asset identifier no just id
+  o String remarks optional
+  o DateTime expireTime optional
+}
+
+abstract transaction RequestTransaction {
+  o String receiverId
+  o String receiverName
+  o String eventName
+  o StatusType status default='UNDETERMINED'
+}
+
+transaction RequestAccessAsset extends RequestTransaction {
+  o String remarks optional
+  o String assetName
+  o String [] assetId
+  o String requestType  default='ASSET'
+}
+
+
+transaction  UpdateRequestStatus {
+  o String requestId
+  o StatusType newStatus 
 }
 
 //access control
@@ -117,137 +240,6 @@ event AuthorizeAccessEvent {
   o String[] assetId
 
 }
-
-//request access user asset control
-enum StatusType {
-  o ACCEPT
-  o DENY
-  o UNDETERMINED
-  o REVOKED
-  o ALL
-}
-
-enum RequestType {
-  o ASSET
-  o CHANNEL
-}
-
-asset Request identified by requestId {
-  o String assetName
-  o String requestName
-  o String requestId
-
-  o String receiverName
-  o String receiverId
-
-  o String senderId
-  o String senderName
-
-  o DateTime createTime
-  o StatusType status default='UNDETERMINED'
-  o RequestType requestType default='ASSET'
-  o String[] requested optional //should store the asset identifier no just id
-  o String remarks optional
-  o DateTime expireTime optional
-}
-
-abstract transaction RequestTransaction {
-  o String receiverId
-  o String receiverName
-  o String eventName
-}
-
-transaction RequestAccessAsset extends RequestTransaction {
-  o String remarks optional
-  o String assetName
-  o String [] assetId
-}
-
-
-transaction  UpdateRequestStatus {
-  o String requestId
-  o StatusType newStatus 
-}
-
-
-// CV records
-concept DateRange {
-  o DateTime from
-  o DateTime to
-}
-
-abstract asset BaseAsset identified by  assetId {
-  o String name
-  o String assetId
-  --> User owner
-  o String[] authorized optional
-}
-
-concept EducationInfo extends DateRange {
-  o String school
-  o String major
-  o Double gpa
-}
-
-asset Education extends BaseAsset {
-  o EducationInfo info
-}
-
-transaction CreateEducation {
-  o EducationInfo info
-}
-
-concept WorkExpInfo extends DateRange {
-  o String company
-  o String jobTitle
-  o String jobDuty
-  o String skills optional
-}
-
-asset WorkExp extends BaseAsset {
-  o WorkExpInfo info
-}
-
-transaction CreateWorkExp {
-  o WorkExpInfo info
-}
-
-concept VolunteerRecordInfo extends DateRange {
-  o String taskDescription
-  o String organization
-  o Integer hoursWorked
-}
-
-asset VolunteerRecord extends BaseAsset {
-  o VolunteerRecordInfo info
-}
-
-transaction CreateVolunteerRecord {
-  o VolunteerRecordInfo info
-  o String name
-}
-
-asset Record extends BaseAsset {
-  o DateTime createTime
-  o BaseInfo baseInfo
-  --> Education [] educations
-  --> WorkExp [] workExps optional
-  o String workSkills optional
-}
-
-transaction CreateRecord {
-  o BaseInfo baseInfo
-  o EducationInfo[] educationInfo
-  o WorkExpInfo[] workExpInfo optional
-  o DateTime createTime
-  o String workSkills optional
-}
-
-transaction GetAssetById {
-  o String id
-  o String assetName
-}
-
 
 
 

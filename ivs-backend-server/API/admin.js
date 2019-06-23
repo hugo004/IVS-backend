@@ -30,22 +30,27 @@ module.exports = function(app, jwt, NS, userCardPool) {
    */
   app.get('/api/admin/getAllRegistryAsset', async function(req, res) {
     try {
-      //get all defined asset from the network
-      await AdminCard.connect();
-      const connection = AdminCard.getConnection();
-      const allAsset = await connection.getAllAssetRegistries();
+      //descrypted
+      // //get all defined asset from the network
+      // await AdminCard.connect();
+      // const connection = AdminCard.getConnection();
+      // const allAsset = await connection.getAllAssetRegistries();
 
-      //get defined asset name
-      let allAssetName = [];
-      allAsset.forEach(element => {
-          allAssetName.push(element.id);
-      });
+      // //get defined asset name
+      // let allAssetName = [];
+      // allAsset.forEach(element => {
+      //     allAssetName.push(element.id);
+      // });
 
-      await AdminCard.disconnect();
+      // await AdminCard.disconnect();
 
-      //return the result
+      // //return the result
+      // res.status(200).json({
+      //   result: allAssetName
+      // });
+
       res.status(200).json({
-        result: allAssetName
+        result: Config.recordType
       });
 
     }
@@ -87,54 +92,6 @@ module.exports = function(app, jwt, NS, userCardPool) {
     }
   })
 
-    /**
-   * @param {userId, name, owner, members[]} req
-   */
-  app.post('/api/admin/createChannel',  async function(req, res) {
-    try {
-      const {authorization} = req.headers;
-      const {
-        userId,
-        userName
-      } = Helper.GetTokenInfo(jwt, authorization, secret);
-
-      let {
-        name,
-        members
-      } = req.body;
-
-      //get defined participant from network
-      let definition = await AdminCard.connect();
-      let connection = AdminCard.getConnection();
-
-      //add owner id as part of channel member
-      members.push(userId);
-
-
-      //submit transaction
-      let factory = definition.getFactory();
-      let transaction = factory.newTransaction(NS, 'CreateChannel');
-      transaction.name = name;
-      transaction.members = members;
-      transaction.owner = userName;
-      transaction.ownerId = userId;
-
-      await connection.submitTransaction(transaction);
-
-      //dissconnect network
-      await AdminCard.disconnect();
-
-      res.status(200).json({
-        result: 'Create success'
-      });
-    }
-    catch (error) {
-      let statusCode = Helper.ErrorCode(error);
-      res.status(statusCode).json({
-        error: error.toString()
-      });
-    }
-  })
 
 
   /**
@@ -142,26 +99,85 @@ module.exports = function(app, jwt, NS, userCardPool) {
    */
   app.get('/api/admin/getChannelMembersAssets', async function(req, res) {
     try {
+      console.log('getChannelMembersAssets api start');
+
       //check user is authorized
       const {authorization} = req.headers;
       Helper.GetTokenInfo(jwt, authorization, secret);
 
-      //get all defined asset from the network
-      await AdminCard.connect();
-      let connection = AdminCard.getConnection();
-      const allAsset = await connection.getAllAssetRegistries();
 
-      //get defined asset name
-      let allAssetName = [];
-      allAsset.forEach(element => {
-          allAssetName.push(element.id);
-      });
+      //decrepted
+      // //get all defined asset from the network
+      // await AdminCard.connect();
+      // let connection = AdminCard.getConnection();
+      // const allAsset = await connection.getAllAssetRegistries();
 
-      await AdminCard.disconnect();
+      // //get defined asset name
+      // let allAssetName = [];
+      // allAsset.forEach(element => {
+      //     allAssetName.push(element.id);
+      // });
+
+
+      // await AdminCard.disconnect();
+
+      // //get members id
+      // let {memberIds} = req.query;
+      
+      // //if string type mean no array, convert to array
+      // if (typeof memberIds == 'string') {
+      //   memberIds = [memberIds];
+      // }
+
+      // let membersAsset = {};
+      // for (let m=0; m<memberIds.length; m++) {
+      //   let memberId = memberIds[m];
+
+      //   //connect member's network
+      //   let memberCard = await Helper.GetUserCard(memberId);
+      //   await memberCard.connect();
+
+      //   //get member all asset of this category
+      //   connection = memberCard.getConnection();
+
+      //   let myAsset = {};
+      //   for (let i=0; i<allAssetName.length; i++) {
+      //     let assetName = allAssetName[i];
+      //     let registry = await connection.getAssetRegistry(assetName);
+
+      //     //put asset list to relative category
+      //     assetName = assetName.replace(`${NS}.`, ''); //remove network namespace
+      //     let assets = await registry.getAll();
+      //     //filter out the verified record
+      //     assets = assets.filter(e => e.isVerify == true);
+
+      //     //filter out the asset, makesure it is belong owner
+      //     //authorized user also can get the asset
+      //     assets.forEach(e => {
+      //       if (e.authorized) {
+      //         let authorizedList = e.authorized || [];
+
+      //         //if memmber access the by authorized by another user, remove it
+      //         //to retrieve the actual asset of member
+      //         if (authorizedList.includes(memberId)) {
+      //           let index = assets.indexOf(e);
+      //           if (index > -1) {
+      //             assets.splice(index, 1);
+      //           }
+      //         }
+      //       }
+      //     });
+
+      //     myAsset[assetName] = assets;
+      //   }
+
+      //   await memberCard.disconnect();
+      //   membersAsset[memberId] = myAsset;
+      // }
 
       //get members id
       let {memberIds} = req.query;
-
+      
       //if string type mean no array, convert to array
       if (typeof memberIds == 'string') {
         memberIds = [memberIds];
@@ -176,36 +192,27 @@ module.exports = function(app, jwt, NS, userCardPool) {
         await memberCard.connect();
 
         //get member all asset of this category
-        connection = memberCard.getConnection();
+        let connection = memberCard.getConnection();
 
         let myAsset = {};
-        for (let i=0; i<allAssetName.length; i++) {
-          let assetName = allAssetName[i];
-          let registry = await connection.getAssetRegistry(assetName);
+        let registry = await connection.getAssetRegistry(`${NS}.Record`);
+        let records = await registry.getAll();
 
-          //put asset list to relative category
-          assetName = assetName.replace(`${NS}.`, ''); //remove network namespace
-          let assets = await registry.getAll();
+        //filter out the verified record
+        records = records.filter(e => e.isVerify == true);
 
-          //filter out the asset, makesure it is belong owner
-          //authorized user also can get the asset
-          assets.forEach(e => {
-            if (e.authorized) {
-              let authorizedList = e.authorized || [];
+        //current support record type
+        let recordType = Config.recordType;
 
-              //if memmber access the by authorized by another user, remove it
-              //to retrieve the actual asset of member
-              if (authorizedList.includes(memberId)) {
-                let index = assets.indexOf(e);
-                if (index > -1) {
-                  assets.splice(index, 1);
-                }
-              }
-            }
-          });
-
-          myAsset[assetName] = assets;
-        }
+        //classfy record into response record type
+        recordType.forEach(type => {
+          let filtered = records.filter(record => record.recordType == type);
+          
+          //save no empty list only
+          if (filtered.length > 0) {
+            myAsset[type] = filtered
+          }
+        });
 
         await memberCard.disconnect();
         membersAsset[memberId] = myAsset;
@@ -215,6 +222,59 @@ module.exports = function(app, jwt, NS, userCardPool) {
         result: membersAsset
       });
 
+      console.log('getChannelMembersAssets api finish');
+
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  })
+  
+  /**
+   * @param {userId, channelId}
+   */
+  app.get('/api/admin/GetChannelAssets', async function(req, res) {
+    try {
+      console.log('GetChannelAssets api start');
+
+      //check user is authorized
+      const {authorization} = req.headers;
+      Helper.GetTokenInfo(jwt, authorization, secret);
+
+
+      //get all defined asset from the network
+      await AdminCard.connect();
+      let connection = AdminCard.getConnection();
+
+      const {channelId} = req.query;
+
+      //get this channel's record
+      let channelAsset = [];
+      let pRegistry = await connection.getParticipantRegistry(`${NS}.Channel`);
+      let channel = await pRegistry.get(channelId);
+
+      let registry = await connection.getAssetRegistry(`${NS}.Record`);
+      if (channel.records) {
+        for (let i=0; i<channel.records.length; i++) {
+          let rid = channel.records[i];
+          let record = await registry.get(rid);
+
+          if (record) {
+            channelAsset.push(record);
+          }
+        }
+      }
+
+      await AdminCard.disconnect();
+
+      res.status(200).json({
+        result: channelAsset
+      });
+
+      console.log('GetChannelAssets api finish');
     }
     catch (error) {
       let statusCode = Helper.ErrorCode(error);
@@ -418,6 +478,68 @@ module.exports = function(app, jwt, NS, userCardPool) {
     }
   })
 
+    /**
+   * @param {channelId, name, file} req
+   */
+  app.post('/api/admin/UploadChannelAsset', async function(req, res) {
+    try {
+      console.log('UploadChannelAsset api start');
+
+      const {authorization} = req.headers;
+      Helper.GetTokenInfo(jwt, authorization, secret);
+
+
+      const {channelId} = req.body;
+
+      const {records} = req.files;
+      let {data, mimetype, name} = records;
+      let base64Str =  Helper.getBase64(data);
+
+      await AdminCard.connect();
+      let connection = AdminCard.getConnection();
+      let definition = AdminCard.getDefinition();
+      //get channel
+      let pRegistry = await connection.getParticipantRegistry(`${NS}.Channel`);
+      let channel = await pRegistry.get(channelId);
+      if (!channel) throw new Error ('channel not exit');
+
+      //new channel record
+      let aRegistry = await connection.getAssetRegistry(`${NS}.Record`);
+      let factory = definition.getFactory();
+      
+      let newRecordId = UIDGenerator('r');
+      let newRecord = factory.newResource(NS, 'Record', newRecordId);
+      newRecord.fileType = mimetype;
+      newRecord.createTime = new Date();
+      newRecord.encrypted = base64Str;
+      newRecord.name = name;
+      newRecord.owner =  channelId;
+
+      await aRegistry.add(newRecord);
+
+      //update records list
+      let channelRecords = channel.records || [];
+      channelRecords.push(newRecordId);
+      channel.records = channelRecords;
+
+      await pRegistry.update(channel);
+
+      await AdminCard.disconnect();
+
+      res.status(200).json({
+        result: 'success'
+      });
+
+
+      console.log('UploadChannelAsset api finish');
+    }
+    catch (error) {
+      let statusCode = Helper.ErrorCode(error);
+      res.status(statusCode).json({
+        error: error.toString()
+      });
+    }
+  })
 
   /**
    * @param {userName, password, firstName, lastName, email, phone} req
@@ -504,41 +626,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
     }
   })
 
-  /**
-   * @param {userId}
-   * return user list in network, exclude the current user
-   */
-  app.get('/api/admin/getUsers', async function(req, res) {
-    try {
-      console.log('getUser api start');
 
-      const {authorization} = req.headers;
-      const {userId} = Helper.GetTokenInfo(jwt, authorization, secret)
-
-      await AdminCard.connect();
-
-      let connection = AdminCard.getConnection();
-      let registry = await connection.getParticipantRegistry(`${NS}.User`);
-      let allUsers = await registry.getAll();
-
-      //filter out me from user list
-      let filtered = allUsers.filter(e => e.userId != userId);
-
-      await AdminCard.disconnect();
-
-      res.status(200).json({
-        result: filtered
-      });
-
-      console.log('getUser api finish');
-      
-    }
-    catch (error) {
-      res.status(500).json({
-        error: error
-      });
-    }
-  })
 
   /**
    * @param {assetName, userId} req
@@ -555,7 +643,7 @@ module.exports = function(app, jwt, NS, userCardPool) {
       let assets = await registry.getAll();
 
 
-      let myAsset = assets.filter(e => e.owner.getIdentifier() == userId);
+      let myAsset = assets.filter(e => e.owner == userId && e.isVerify == true);
 
       await AdminCard.disconnect();
 
@@ -565,6 +653,38 @@ module.exports = function(app, jwt, NS, userCardPool) {
 
       console.log('getUserAsset api finish');
       
+    }
+    catch (error) {
+      res.status(500).json({
+        error: error.toString()
+      });
+    }
+  })
+
+
+  /**
+   * use to rest network registry id
+   */
+  app.post('/api/admin/getNetworkIdentity', async function (req, res) {
+    try {
+      //conenct to admin networkd
+      await AdminCard.connect();
+      let connection = AdminCard.getConnection();
+
+      //get user networkd id card
+      let iRegistry = await connection.getIdentityRegistry();
+      let identities = await iRegistry.getAll();
+
+      //filter out admin card
+      let filtered = identities.filter(e => e.name != 'admin');
+
+      
+      await AdminCard.disconnect();
+
+      res.status(200).json({
+        result: filtered
+      });
+
     }
     catch (error) {
       res.status(500).json({
